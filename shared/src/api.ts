@@ -89,7 +89,9 @@ export type ClientMessage =
   | { type: 'terminal'; requestId: string; data: string }
   | { type: 'execution'; requestId: string; state: 'en-cours' | 'terminee'; exitCode?: number }
   | { type: 'reponse'; requestId: string; path: string; accepted: boolean; reason?: string }
-  | { type: 'reponse-relance'; requestId: string; accepted: boolean };
+  | { type: 'reponse-relance'; requestId: string; accepted: boolean }
+  | { type: 'proposer-fiche'; requestId: string; error: string; cause: string; fix: string }
+  | { type: 'valider-fiche'; requestId: string; error?: string; cause?: string; fix?: string };
 
 export type ServerMessage =
   | { type: 'bienvenue'; user: PublicUser }
@@ -108,7 +110,9 @@ export type ServerMessage =
   | { type: 'presence'; requestId: string; members: SalleMember[] }
   | { type: 'proposition'; requestId: string; by: string }
   | { type: 'relance-demandee'; requestId: string; by: string }
-  | { type: 'salle-fermee'; requestId: string; raison: 'resolue' | 'annulee' | 'expiree'; by?: string };
+  | { type: 'salle-fermee'; requestId: string; raison: 'resolue' | 'annulee' | 'expiree'; by?: string }
+  | { type: 'fiche-proposee'; requestId: string; by: string; error: string; cause: string; fix: string }
+  | { type: 'fiche-validee'; requestId: string; by: string };
 
 /** `terminal` = the `sos` command on the requester's machine; `web` = the browser. */
 export type SalleClient = 'terminal' | 'web';
