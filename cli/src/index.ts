@@ -76,6 +76,13 @@ async function main(): Promise<number> {
       }
     }
   }
+  if (!args.yes && !args.dryRun && process.stdin.isTTY) {
+    try {
+      const { hint } = await import('./api.js').then(m => m.createApi((await import('./config.js')).serverUrl()).aiHint());
+      console.log(pc.bold('\n💡 Piste de l\'IA :'));
+      console.log(pc.cyan(`  ${hint}`));
+    } catch {}
+  }
 
   console.log(renderPreview(built.request, collected.skipped, built.findings));
 

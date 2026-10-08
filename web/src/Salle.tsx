@@ -56,6 +56,10 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const [closed, setClosed] = useState<Closed | null>(null);
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
+  const [showFicheModal, setShowFicheModal] = useState(false);
+  const [ficheDraft, setFicheDraft] = useState({ error: '', cause: '', fix: '' });
+  const [ficheValidatedByMe, setFicheValidatedByMe] = useState(false);
+  const [ficheValidatedByOther, setFicheValidatedByOther] = useState(false);
   const socket = useRef<ReturnType<typeof connectRadar> | null>(null);
   const terminalEnd = useRef<HTMLPreElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
@@ -107,6 +111,13 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           return setClosed({ raison: m.raison, by: m.by });
         case 'erreur':
           return setError(m.message);
+        case 'fiche-proposee':
+          setFicheDraft({ error: m.error, cause: m.cause, fix: m.fix });
+          setShowFicheModal(true);
+          return;
+        case 'fiche-validee':
+          setFicheValidatedByOther(true);
+          return;
       }
     };
     socket.current = connectRadar(token, onMessage, () => setError((e) => e || 'Connexion perdue. Recharge la page pour revenir dans la salle.'));
@@ -168,7 +179,8 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         <button
           className="resolve"
           onClick={() => {
-            if (confirm('Le problème est résolu ? La salle sera fermée et le code effacé du serveur.')) socket.current?.send({ type: 'resolu', requestId });
+            setShowFicheModal(true);
+            if (!ficheDraft.error) setFicheDraft({ ...ficheDraft, error: salle.errorSummary });
           }}
         >
           Problème résolu
@@ -240,6 +252,56 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           </form>
         </section>
       </div>
+
+      {showFicheModal && (
+        <div className="modal-overlay">
+          <div className="modal card">
+            <h2>Validation de la solution</h2>
+            <p className="hint">Rédigez la fiche solution ensemble. Les deux doivent valider pour fermer la salle.</p>
+            <label>
+              Erreur
+              <input 
+                value={ficheDraft.error} 
+                onChange={e => setFicheDraft({...ficheDraft, error: e.target.value})} 
+                onBlur={() => socket.current?.send({ type: 'proposer-fiche', requestId, ...ficheDraft })}
+                disabled={ficheValidatedByMe} 
+              />
+            </label>
+            <label>
+              Cause
+              <textarea 
+                value={ficheDraft.cause} 
+                onChange={e => setFicheDraft({...ficheDraft, cause: e.target.value})} 
+                onBlur={() => socket.current?.send({ type: 'proposer-fiche', requestId, ...ficheDraft })}
+                disabled={ficheValidatedByMe} 
+              />
+            </label>
+            <label>
+              Correction
+              <textarea 
+                value={ficheDraft.fix} 
+                onChange={e => setFicheDraft({...ficheDraft, fix: e.target.value})} 
+                onBlur={() => socket.current?.send({ type: 'proposer-fiche', requestId, ...ficheDraft })}
+                disabled={ficheValidatedByMe} 
+              />
+            </label>
+            <div className="actions">
+              <button onClick={() => setShowFicheModal(false)}>Annuler</button>
+              <button 
+                className="primary" 
+                onClick={() => {
+                  setFicheValidatedByMe(true);
+                  socket.current?.send({ type: 'valider-fiche', requestId, ...ficheDraft });
+                }}
+                disabled={ficheValidatedByMe}
+              >
+                {ficheValidatedByMe ? (ficheValidatedByOther ? 'Validation en cours...' : 'En attente de l\'autre...') : 'Valider la fiche'}
+              </button>
+            </div>
+            {ficheValidatedByOther && !ficheValidatedByMe && <p className="hint" style={{color: 'green'}}>L'autre a validé, il ne manque plus que toi !</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

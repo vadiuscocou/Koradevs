@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Post, Inject, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { parseBody } from '../validation.js';
 import { SolutionsService } from './solutions.service.js';
@@ -17,5 +17,10 @@ export class SolutionsController {
   search(@Query() query: unknown) {
     const { q, tech } = parseBody(SearchQuery, query);
     return this.solutions.search(q, tech ? tech.split(',').map((t) => t.trim()).filter(Boolean) : []);
+  }
+
+  @Post('ai-hint')
+  aiHint() {
+    return { hint: "Il semble que vous ayez oublié d'installer une dépendance ou qu'il y ait une faute de frappe..." };
   }
 }

@@ -48,6 +48,7 @@ export class MemoryStore implements Store {
       payload: structuredClone(input.payload),
       helperId: null,
       acceptedAt: null,
+      resolvedAt: null,
       createdAt: input.createdAt,
       expiresAt: input.expiresAt,
     };
@@ -95,7 +96,7 @@ export class MemoryStore implements Store {
   async resolveRequest(id: string, userId: string, now: Date): Promise<boolean> {
     const r = this.requests.get(id);
     if (!r || r.status !== 'acceptee' || r.expiresAt <= now || (r.userId !== userId && r.helperId !== userId)) return false;
-    Object.assign(r, { status: 'resolue', expiresAt: now });
+    Object.assign(r, { status: 'resolue', resolvedAt: now, expiresAt: now });
     return true;
   }
 
@@ -110,6 +111,13 @@ export class MemoryStore implements Store {
 
   async getHelperTech(userId: string): Promise<string[]> {
     return [...(this.helperTech.get(userId) ?? [])];
+  }
+
+  async getHelperStats(userId: string): Promise<{ resolvedCount: number; avgResolutionTimeMs: number }> {
+    const resolved = [...this.requests.values()].filter((r) => r.helperId === userId && r.status === 'resolue' && r.acceptedAt && r.resolvedAt);
+    if (resolved.length === 0) return { resolvedCount: 0, avgResolutionTimeMs: 0 };
+    const totalTime = resolved.reduce((sum, r) => sum + (r.resolvedAt!.getTime() - r.acceptedAt!.getTime()), 0);
+    return { resolvedCount: resolved.length, avgResolutionTimeMs: totalTime / resolved.length };
   }
 
   async seedSolutions(solutions: NewSolution[]): Promise<void> {

@@ -4,6 +4,8 @@ import { connectRadar, forgetToken, loginDev, logout, me, savedToken } from './a
 // The editor (CodeMirror + Yjs) is only loaded when entering a room.
 const Salle = lazy(() => import('./Salle.js').then((m) => ({ default: m.Salle })));
 
+const Profil = lazy(() => import('./Profil.js').then((m) => ({ default: m.Profil })));
+
 const STAGE_LABEL: Record<RadarStage, string> = {
   ciblee: 'Ta techno',
   elargie: 'Alerte élargie',
@@ -11,6 +13,7 @@ const STAGE_LABEL: Record<RadarStage, string> = {
 };
 
 const salleFromHash = () => /^#\/salle\/([0-9a-f-]{36})$/i.exec(location.hash)?.[1] ?? null;
+const profilFromHash = () => location.hash === '#/profil';
 
 function since(iso: string, now: number): string {
   const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
@@ -57,9 +60,13 @@ export function App() {
   const [now, setNow] = useState(Date.now());
   const radar = useRef<ReturnType<typeof connectRadar> | null>(null);
   const [salle, setSalle] = useState<string | null>(salleFromHash());
+  const [showProfil, setShowProfil] = useState<boolean>(profilFromHash());
 
   useEffect(() => {
-    const onHash = () => setSalle(salleFromHash());
+    const onHash = () => {
+      setSalle(salleFromHash());
+      setShowProfil(profilFromHash());
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -126,6 +133,14 @@ export function App() {
     );
   }
 
+  if (showProfil) {
+    return (
+      <Suspense fallback={<main className="card narrow">Chargement...</main>}>
+        <Profil token={token} onBack={() => location.hash = '#/'} />
+      </Suspense>
+    );
+  }
+
   const toggleTech = (t: string) => {
     const next = tech.includes(t) ? tech.filter((x) => x !== t) : [...tech, t];
     setTech(next);
@@ -153,10 +168,12 @@ export function App() {
         <h1>Radar</h1>
         <span className={connected ? 'dot on' : 'dot'} title={connected ? 'Connecté' : 'Déconnecté'} />
         <span className="who">@{user.login}</span>
+        <a href="#/profil" className="link">Profil</a>
         <button className="link" onClick={() => void logout(token).finally(() => (setToken(null), setUser(null)))}>
           Se déconnecter
         </button>
       </header>
+
 
       <section className="card">
         <h2>Mes technos</h2>

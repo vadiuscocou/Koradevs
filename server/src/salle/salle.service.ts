@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import * as Y from 'yjs';
 import {
   errorSummary,
@@ -44,6 +45,9 @@ interface Room {
   expiresAt: Date;
   members: Set<Member>;
   nextMessageId: number;
+  ficheDraft?: { error: string; cause: string; fix: string };
+  ficheValidatedRequester: boolean;
+  ficheValidatedHelper: boolean;
 }
 
 const MAX_CHAT = 500;
@@ -137,6 +141,39 @@ export class SalleService {
       case 'reponse-relance':
         if (!fromTerminal) return;
         return this.say(room, 'SOS', 'systeme', message.accepted ? 'Relance autorisée.' : 'Relance refusée par le demandeur.');
+      case 'proposer-fiche': {
+        const error = String(message.error);
+        const cause = String(message.cause);
+        const fix = String(message.fix);
+        room.ficheDraft = { error, cause, fix };
+        return this.broadcast(room, { type: 'fiche-proposee', requestId: room.requestId, by: login, error, cause, fix }, member);
+      }
+      case 'valider-fiche': {
+        if (member.role === 'demandeur') room.ficheValidatedRequester = true;
+        if (member.role === 'aidant') room.ficheValidatedHelper = true;
+        
+        // If the message brings new content, update it
+        if (message.error && message.cause && message.fix) {
+          room.ficheDraft = { error: String(message.error), cause: String(message.cause), fix: String(message.fix) };
+          this.broadcast(room, { type: 'fiche-proposee', requestId: room.requestId, by: login, ...room.ficheDraft }, member);
+        }
+
+        if (room.ficheValidatedRequester && room.ficheValidatedHelper && room.ficheDraft) {
+          this.store.seedSolutions([{
+            id: randomUUID(),
+            title: room.errorSummary || 'Problème résolu',
+            error: room.ficheDraft.error,
+            cause: room.ficheDraft.cause,
+            fix: room.ficheDraft.fix,
+            tech: room.tech,
+          }]).catch(e => this.logger.error('Failed to save fiche:', e));
+          this.resolve(conn, room.requestId);
+        } else {
+          // Tell the other one it was validated
+          this.broadcast(room, { type: 'fiche-validee', requestId: room.requestId, by: login }, member);
+        }
+        return;
+      }
     }
   }
 
@@ -194,6 +231,8 @@ export class SalleService {
       expiresAt: request.expiresAt,
       members: new Set(),
       nextMessageId: 1,
+      ficheValidatedRequester: false,
+      ficheValidatedHelper: false,
     };
     this.rooms.set(request.id, room);
     return room;

@@ -26,6 +26,7 @@ export interface StoredRequest {
   payload: SosRequest;
   helperId: string | null;
   acceptedAt: Date | null;
+  resolvedAt: Date | null;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -76,6 +77,7 @@ export interface Store {
   getUser(id: string): Promise<User | null>;
   setHelperTech(userId: string, tech: string[]): Promise<void>;
   getHelperTech(userId: string): Promise<string[]>;
+  getHelperStats(userId: string): Promise<{ resolvedCount: number; avgResolutionTimeMs: number }>;
   /** Inserts the sheets that do not exist yet (by id). */
   seedSolutions(solutions: NewSolution[]): Promise<void>;
   /** Sheets containing at least one of these lowercase words (scoring is done by the caller). */

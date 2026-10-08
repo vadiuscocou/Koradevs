@@ -43,4 +43,18 @@ export class AuthController {
   me(@CurrentUser() user: User) {
     return publicUser(user);
   }
+
+  @Get('me/profile')
+  @UseGuards(AuthGuard)
+  async myProfile(@CurrentUser() user: User, @Inject('SOS_STORE') store: import('../store/types.js').Store) {
+    const stats = await store.getHelperStats(user.id);
+    const tech = await store.getHelperTech(user.id);
+    return {
+      stats: {
+        resolvedCount: stats.resolvedCount,
+        averageResolutionTime: stats.avgResolutionTimeMs,
+      },
+      tech,
+    };
+  }
 }

@@ -23,6 +23,7 @@ interface RequestRow {
   payload: SosRequest;
   helper_id: string | null;
   accepted_at: Date | null;
+  resolved_at: Date | null;
   created_at: Date;
   expires_at: Date;
 }
@@ -67,6 +68,7 @@ const toRequest = (row: RequestRow): StoredRequest => ({
   payload: row.payload,
   helperId: row.helper_id,
   acceptedAt: row.accepted_at,
+  resolvedAt: row.resolved_at,
   createdAt: row.created_at,
   expiresAt: row.expires_at,
 });
@@ -188,6 +190,19 @@ export class PgStore implements Store {
   async getHelperTech(userId: string): Promise<string[]> {
     const { rows } = await this.pool.query<{ tech: string[] }>('SELECT tech FROM helper_profiles WHERE user_id = $1', [userId]);
     return rows[0]?.tech ?? [];
+  }
+
+  async getHelperStats(userId: string): Promise<{ resolvedCount: number; avgResolutionTimeMs: number }> {
+    const { rows } = await this.pool.query<{ count: string; avg_ms: string | null }>(
+      `SELECT count(*) as count, 
+              avg(extract(epoch from (resolved_at - accepted_at)) * 1000) as avg_ms
+       FROM requests
+       WHERE helper_id = $1 AND status = 'resolue'`,
+      [userId],
+    );
+    const count = Number(rows[0]?.count ?? 0);
+    const avgMs = Number(rows[0]?.avg_ms ?? 0);
+    return { resolvedCount: count, avgResolutionTimeMs: avgMs };
   }
 
   async seedSolutions(solutions: NewSolution[]): Promise<void> {

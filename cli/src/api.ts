@@ -48,6 +48,7 @@ export function createApi(server: string, token?: string, fetchImpl: typeof fetc
     closeRequest: (id: string) => call<void>('POST', `/requests/${encodeURIComponent(id)}/close`),
     searchSolutions: (q: string, tech: string[]) =>
       call<SolutionHit[]>('GET', `/solutions/search?${new URLSearchParams({ q, ...(tech.length ? { tech: tech.join(',') } : {}) })}`),
+    aiHint: () => call<{ hint: string }>('POST', '/solutions/ai-hint'),
   };
 }
 
