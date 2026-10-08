@@ -24,6 +24,7 @@ export async function loginDev(login: string): Promise<SessionResponse> {
 }
 
 export const me = (token: string) => call<PublicUser>('GET', '/me', undefined, token);
+export const myProfile = (token: string) => call<{ stats: { resolvedCount: number, averageResolutionTime: number }, tech: string[] }>('GET', '/me/profile', undefined, token);
 export const logout = (token: string) => call<void>('POST', '/auth/logout', undefined, token).finally(forgetToken);
 
 export function connectRadar(token: string, onMessage: (m: ServerMessage) => void, onClose: () => void) {

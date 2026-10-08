@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from './api.js';
+import { myProfile } from './api.js';
 
 interface ProfileData {
   stats: {
@@ -14,13 +14,7 @@ export function Profil({ token, onBack }: { token: string; onBack: () => void })
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api('/me/profile', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Erreur de chargement du profil');
-        return res.json();
-      })
+    myProfile(token)
       .then(setData)
       .catch((err) => setError(err.message));
   }, [token]);
