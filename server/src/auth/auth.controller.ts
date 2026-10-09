@@ -12,7 +12,10 @@ const DevLoginSchema = z.object({
 
 @Controller()
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+  constructor(
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject('SOS_STORE') private readonly store: import('../store/types.js').Store,
+  ) {}
 
   @Get('auth/config')
   config() {
@@ -46,9 +49,9 @@ export class AuthController {
 
   @Get('me/profile')
   @UseGuards(AuthGuard)
-  async myProfile(@CurrentUser() user: User, @Inject('SOS_STORE') store: import('../store/types.js').Store) {
-    const stats = await store.getHelperStats(user.id);
-    const tech = await store.getHelperTech(user.id);
+  async myProfile(@CurrentUser() user: User) {
+    const stats = await this.store.getHelperStats(user.id);
+    const tech = await this.store.getHelperTech(user.id);
     return {
       stats: {
         resolvedCount: stats.resolvedCount,
