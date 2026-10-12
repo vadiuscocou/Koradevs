@@ -82,6 +82,8 @@ export interface Store {
   seedSolutions(solutions: NewSolution[]): Promise<void>;
   /** Sheets containing at least one of these lowercase words (scoring is done by the caller). */
   findSolutionCandidates(words: string[], limit: number): Promise<Solution[]>;
+  /** Lists recent solutions */
+  listSolutions(limit?: number): Promise<Solution[]>;
   purgeExpired(now: Date): Promise<PurgeResult>;
   close(): Promise<void>;
 }

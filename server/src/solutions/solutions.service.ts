@@ -28,4 +28,17 @@ export class SolutionsService {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   }
+
+  async recent(limit = 20): Promise<SolutionHit[]> {
+    const list = await this.store.listSolutions(limit);
+    return list.map((s) => ({
+      id: s.id,
+      title: s.title,
+      error: s.error,
+      cause: s.cause,
+      fix: s.fix,
+      tech: s.tech,
+      score: 1,
+    }));
+  }
 }

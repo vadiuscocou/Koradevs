@@ -59,4 +59,76 @@ button.resolve { background: #8957e5; }
 .chat-form { display: flex; gap: 6px; grid-template-columns: none; }
 .chat-form input { flex: 1; }
 @media (max-width: 900px) { .salle { height: auto; } .salle-grid { grid-template-columns: 1fr; } }
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; } .modal { background: #282c34; padding: 2rem; border-radius: 8px; max-width: 500px; width: 100%; } .modal label { display: block; margin: 1rem 0; } .modal input, .modal textarea { width: 100%; margin-top: 0.5rem; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
+.modal { background: #161b22; border: 1px solid #30363d; padding: 1.5rem; border-radius: 10px; max-width: 520px; width: 90%; color: #e6edf3; }
+.modal label { display: block; margin: 0.8rem 0; font-size: 0.9rem; }
+.modal input, .modal textarea { width: 100%; box-sizing: border-box; }
+
+/* Navbar */
+.top-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  background: transparent;
+  color: #8b949e;
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-btn:hover {
+  color: #e6edf3;
+  background: #21262d;
+}
+.nav-btn.active {
+  color: #fff;
+  background: #21262d;
+  border-color: #388bfd;
+}
+.badge-count {
+  background: #f85149;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 99px;
+  font-weight: bold;
+}
+
+/* Print styles for Passeport de compétences */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .top-navbar, button, .nav-tabs, form, .link {
+    display: none !important;
+  }
+  .passport-card {
+    border: 2px solid #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+  .passport-card * {
+    color: #000 !important;
+    background: #fff !important;
+    border-color: #ccc !important;
+  }
+}

@@ -228,6 +228,16 @@ export class PgStore implements Store {
     return rows.map(toSolution);
   }
 
+  async listSolutions(limit = 20): Promise<Solution[]> {
+    const { rows } = await this.pool.query<SolutionRow>(
+      `SELECT id, title, error, cause, fix, tech, created_at FROM solutions
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return rows.map(toSolution);
+  }
+
   async purgeExpired(now: Date): Promise<PurgeResult> {
     const requests = await this.pool.query('DELETE FROM requests WHERE expires_at <= $1', [now]);
     const sessions = await this.pool.query('DELETE FROM sessions WHERE expires_at <= $1', [now]);

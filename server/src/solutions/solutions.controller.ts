@@ -19,6 +19,11 @@ export class SolutionsController {
     return this.solutions.search(q, tech ? tech.split(',').map((t) => t.trim()).filter(Boolean) : []);
   }
 
+  @Get('recent')
+  recent() {
+    return this.solutions.recent();
+  }
+
   @Post('ai-hint')
   aiHint() {
     return { hint: "Il semble que vous ayez oublié d'installer une dépendance ou qu'il y ait une faute de frappe..." };

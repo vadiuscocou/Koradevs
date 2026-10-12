@@ -15,6 +15,8 @@ import { RequestsController } from './requests/requests.controller.js';
 import { RequestsService } from './requests/requests.service.js';
 import { SolutionsController } from './solutions/solutions.controller.js';
 import { SolutionsService } from './solutions/solutions.service.js';
+import { CommunityController } from './community/community.controller.js';
+import { CommunityService } from './community/community.service.js';
 import type { Store } from './store/types.js';
 import { CLOCK, CONFIG, GITHUB, STORE, type Clock } from './tokens.js';
 
@@ -30,7 +32,7 @@ export class AppModule {
   static forRoot(deps: AppDeps): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, RequestsController, SolutionsController],
+      controllers: [HealthController, AuthController, RequestsController, SolutionsController, CommunityController],
       providers: [
         { provide: CONFIG, useValue: deps.config },
         { provide: STORE, useValue: deps.store },
@@ -43,6 +45,7 @@ export class AppModule {
         RadarService,
         SalleService,
         SolutionsService,
+        CommunityService,
       ],
     };
   }

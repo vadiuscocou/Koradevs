@@ -132,6 +132,13 @@ export class MemoryStore implements Store {
       .map((s) => structuredClone(s));
   }
 
+  async listSolutions(limit = 20): Promise<Solution[]> {
+    return [...this.solutions.values()]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit)
+      .map((s) => structuredClone(s));
+  }
+
   async purgeExpired(now: Date): Promise<PurgeResult> {
     const result = { requests: 0, sessions: 0 };
     for (const [id, r] of this.requests) if (r.expiresAt <= now && this.requests.delete(id)) result.requests++;
