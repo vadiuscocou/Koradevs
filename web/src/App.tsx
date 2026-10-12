@@ -1,19 +1,28 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import {
+  Compass,
+  HandHelping,
+  LifeBuoy,
+  FolderGit2,
+  House,
+  Bell,
+  Sun,
+  Moon,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+} from 'lucide-react';
 import { KNOWN_TECH, type PublicUser, type RadarAlert, type RadarStage, type ServerMessage } from '@sos/shared';
 import { connectRadar, forgetToken, loginDev, logout, me, savedToken } from './api.js';
+import { Logo } from './Logo.js';
 
-// Lazy-loaded components
+// Lazy views
 const Salle = lazy(() => import('./Salle.js').then((m) => ({ default: m.Salle })));
 const Decouvrir = lazy(() => import('./Decouvrir.js').then((m) => ({ default: m.Decouvrir })));
 const AppelAide = lazy(() => import('./AppelAide.js').then((m) => ({ default: m.AppelAide })));
 const Projets = lazy(() => import('./Projets.js').then((m) => ({ default: m.Projets })));
 const Maison = lazy(() => import('./Maison.js').then((m) => ({ default: m.Maison })));
-
-const STAGE_LABEL: Record<RadarStage, string> = {
-  ciblee: 'Ta techno',
-  elargie: 'Alerte élargie',
-  publique: 'File publique',
-};
 
 type ActiveTab = 'decouvrir' | 'radar' | 'appel' | 'projets' | 'maison';
 
@@ -36,41 +45,51 @@ function since(iso: string, now: number): string {
 function Login({ onLogin }: { onLogin: (token: string, user: PublicUser) => void }) {
   const [pseudo, setPseudo] = useState('');
   const [error, setError] = useState('');
+
   return (
-    <main className="card narrow" style={{ marginTop: '60px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '1.8rem', color: '#60a5fa' }}>KoraDevs + CodeFlash</h1>
-        <p className="hint">Quand l'IA ne suffit plus, un développeur te rejoint instantanément.</p>
-      </div>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            const session = await loginDev(pseudo.trim());
-            onLogin(session.token, session.user);
-          } catch (err) {
-            setError((err as Error).message);
-          }
-        }}
-      >
-        <label htmlFor="pseudo">Pseudo de développeur (Mode Démo)</label>
-        <input
-          id="pseudo"
-          value={pseudo}
-          onChange={(e) => setPseudo(e.target.value)}
-          placeholder="ex: awa, prince, koffi, fatou..."
-          autoFocus
-          required
-        />
-        <button type="submit" style={{ marginTop: '8px' }}>
-          Entrer dans le Quartier
-        </button>
-        {error && <p className="error">{error}</p>}
-      </form>
-      <p className="hint" style={{ marginTop: '16px', textAlign: 'center' }}>
-        💡 Accès immédiat sans mot de passe pour tester toutes les fonctionnalités.
-      </p>
-    </main>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', padding: '16px' }}>
+      <main className="card" style={{ maxWidth: '420px', width: '100%', padding: '32px 24px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <Logo size={48} showSlogan={true} />
+        </div>
+        <p className="hint" style={{ marginBottom: '24px' }}>
+          Quand l'IA ne suffit plus, un développeur te rejoint instantanément en live-coding avec <b>CodeFlash</b>.
+        </p>
+
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const session = await loginDev(pseudo.trim());
+              onLogin(session.token, session.user);
+            } catch (err) {
+              setError((err as Error).message);
+            }
+          }}
+          style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px' }}
+        >
+          <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+            Pseudo de développeur (Mode Démo)
+            <input
+              value={pseudo}
+              onChange={(e) => setPseudo(e.target.value)}
+              placeholder="ex: awa, prince, koffi, fatou..."
+              autoFocus
+              required
+              style={{ width: '100%', marginTop: '6px' }}
+            />
+          </label>
+          <button type="submit" style={{ width: '100%', marginTop: '8px' }}>
+            Entrer dans le Quartier
+          </button>
+          {error && <p className="error">{error}</p>}
+        </form>
+
+        <div style={{ marginTop: '20px', padding: '10px', background: 'var(--color-brand-soft)', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--color-brand)' }}>
+          💡 Connexion instantanée sans mot de passe pour tester.
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -87,6 +106,13 @@ export function App() {
   const radar = useRef<ReturnType<typeof connectRadar> | null>(null);
   const [salle, setSalle] = useState<string | null>(salleFromHash());
   const [activeTab, setActiveTab] = useState<ActiveTab>(tabFromHash());
+  const [isDark, setIsDark] = useState<boolean>(() => localStorage.getItem('kd.theme') === 'dark');
+
+  // Theme effect
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('kd.theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   useEffect(() => {
     const onHash = () => {
@@ -147,22 +173,24 @@ export function App() {
 
   if (!token || !user) return <Login onLogin={(t, u) => (setToken(t), setUser(u))} />;
 
-  // Salle SOS (CodeFlash Room)
+  // Salle CodeFlash en plein écran avec thème sombre
   if (salle) {
     return (
-      <Suspense fallback={<main className="card narrow">Ouverture de CodeFlash…</main>}>
-        <Salle
-          token={token}
-          user={user}
-          requestId={salle}
-          onLeave={() => {
-            setTaken(null);
-            setAvailable(false);
-            history.replaceState(null, '', location.pathname);
-            setSalle(null);
-          }}
-        />
-      </Suspense>
+      <div className="salle-dark-mode">
+        <Suspense fallback={<div className="card narrow" style={{ margin: '80px auto', textAlign: 'center' }}>Ouverture de CodeFlash…</div>}>
+          <Salle
+            token={token}
+            user={user}
+            requestId={salle}
+            onLeave={() => {
+              setTaken(null);
+              setAvailable(false);
+              history.replaceState(null, '', location.pathname);
+              setSalle(null);
+            }}
+          />
+        </Suspense>
+      </div>
     );
   }
 
@@ -183,139 +211,341 @@ export function App() {
       radar.current?.send({ type: 'disponible', tech });
       setAvailable(true);
     } else {
-      setNotice('Choisis au moins une techno dans la liste.');
+      setNotice('Choisis au moins une technologie dans tes compétences.');
     }
   };
 
   return (
-    <div className="app-container">
-      {/* Top Navbar */}
-      <header className="top-navbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.4rem' }}>⚡</span>
-          <b style={{ fontSize: '1.15rem', color: '#60a5fa', cursor: 'pointer' }} onClick={() => switchTab('decouvrir')}>
-            KoraDevs <small style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: 'normal' }}>CodeFlash</small>
-          </b>
+    <div className="app-layout">
+      {/* 1. Sidebar Gauche Desktop (240px) */}
+      <aside className="sidebar">
+        <div className="sidebar-logo" onClick={() => switchTab('decouvrir')}>
+          <Logo size={36} showSlogan={true} />
         </div>
 
-        <nav className="nav-tabs">
-          <button className={`nav-btn ${activeTab === 'decouvrir' ? 'active' : ''}`} onClick={() => switchTab('decouvrir')}>
-            🧭 Découvrir
+        <nav className="sidebar-nav">
+          <button
+            className={`sidebar-btn ${activeTab === 'decouvrir' ? 'active' : ''}`}
+            onClick={() => switchTab('decouvrir')}
+          >
+            <Compass size={18} />
+            Découvrir
           </button>
-          <button className={`nav-btn ${activeTab === 'radar' ? 'active' : ''}`} onClick={() => switchTab('radar')}>
-            📡 Radar {alerts.length > 0 && <span className="badge-count">{alerts.length}</span>}
+
+          <button
+            className={`sidebar-btn ${activeTab === 'radar' ? 'active' : ''}`}
+            onClick={() => switchTab('radar')}
+          >
+            <HandHelping size={18} />
+            Aider {alerts.length > 0 && <span className="badge-confirmed" style={{ marginLeft: 'auto', padding: '2px 6px' }}>{alerts.length}</span>}
           </button>
-          <button className={`nav-btn ${activeTab === 'appel' ? 'active' : ''}`} onClick={() => switchTab('appel')} style={{ color: '#ff7b72' }}>
-            🆘 Appel à l'aide
+
+          {/* Bouton SOS Corail bien visible */}
+          <button
+            className="sidebar-btn sos-btn"
+            onClick={() => switchTab('appel')}
+          >
+            <LifeBuoy size={20} />
+            SOS Dev
           </button>
-          <button className={`nav-btn ${activeTab === 'projets' ? 'active' : ''}`} onClick={() => switchTab('projets')}>
-            🚀 Vitrine Projets
+
+          <button
+            className={`sidebar-btn ${activeTab === 'projets' ? 'active' : ''}`}
+            onClick={() => switchTab('projets')}
+          >
+            <FolderGit2 size={18} />
+            Projets
           </button>
-          <button className={`nav-btn ${activeTab === 'maison' ? 'active' : ''}`} onClick={() => switchTab('maison')}>
-            🏠 La Maison & Passeport
+
+          <button
+            className={`sidebar-btn ${activeTab === 'maison' ? 'active' : ''}`}
+            onClick={() => switchTab('maison')}
+          >
+            <House size={18} />
+            Maison & Passeport
           </button>
         </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className={connected ? 'dot on' : 'dot'} title={connected ? 'Connecté au Radar' : 'Déconnecté'} />
-          <span className="who" style={{ fontWeight: '500' }}>@{user.login}</span>
-          <button className="link" onClick={() => void logout(token).finally(() => (setToken(null), setUser(null)))}>
-            Déconnexion
+        <div className="sidebar-footer">
+          <button
+            type="button"
+            className="sidebar-btn"
+            onClick={() => setIsDark(!isDark)}
+            style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            {isDark ? 'Mode clair' : 'Mode sombre'}
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>@{user.login}</span>
+            <button
+              className="link"
+              onClick={() => void logout(token).finally(() => (setToken(null), setUser(null)))}
+              style={{ fontSize: '0.8rem', color: 'var(--color-coral)' }}
+            >
+              Quitter
+            </button>
+          </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Content View based on activeTab */}
-      <main>
-        <Suspense fallback={<div className="card narrow"><p>Chargement...</p></div>}>
-          {activeTab === 'decouvrir' && (
-            <Decouvrir
-              token={token}
-              user={user}
-              onGoToAppel={() => switchTab('appel')}
-              onGoToProjets={() => switchTab('projets')}
-            />
-          )}
+      {/* 2. Contenu Central avec En-tête 64px et Panneau Droit */}
+      <div className="content-wrapper">
+        <header className="top-header">
+          {/* Logo compact sur mobile */}
+          <div style={{ display: 'none' }} className="mobile-only-logo">
+            <Logo size={28} showSlogan={false} />
+          </div>
 
-          {activeTab === 'appel' && (
-            <AppelAide
-              token={token}
-              user={user}
-              onSuccess={(reqId) => {
-                location.hash = `#/salle/${reqId}`;
+          <div className="header-search">
+            <Search size={16} color="var(--color-slate)" />
+            <input
+              type="text"
+              placeholder="Rechercher une fiche, un bug, une techno…"
+              onFocus={() => {
+                if (activeTab !== 'decouvrir') switchTab('decouvrir');
               }}
             />
-          )}
+          </div>
 
-          {activeTab === 'projets' && (
-            <Projets token={token} user={user} />
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="network-badge">
+              <span className={connected ? 'dot on' : 'dot'} />
+              <span>{connected ? 'En ligne' : 'Connexion…'}</span>
+            </div>
 
-          {activeTab === 'maison' && (
-            <Maison token={token} user={user} onBack={() => switchTab('decouvrir')} />
-          )}
+            <button
+              type="button"
+              className="link"
+              onClick={() => switchTab('radar')}
+              style={{ position: 'relative', color: 'var(--color-text-muted)' }}
+              title="Notifications"
+            >
+              <Bell size={18} />
+              {alerts.length > 0 && (
+                <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-coral)' }} />
+              )}
+            </button>
 
-          {activeTab === 'radar' && (
-            <div>
-              <section className="card">
-                <h2>📡 Radar des aidants en temps réel</h2>
-                <p className="hint">
-                  Sélectionne tes technologies et rends-toi disponible. Dès qu'un développeur est bloqué, la demande apparaît ci-dessous !
-                </p>
-                <div className="chips">
-                  {KNOWN_TECH.map((t) => (
-                    <button key={t} className={tech.includes(t) ? 'chip on' : 'chip'} onClick={() => toggleTech(t)}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <button className={available ? 'big off' : 'big'} onClick={toggleAvailable} disabled={!connected}>
-                  {available ? 'Me mettre en pause' : 'Me rendre disponible sur le Radar'}
-                </button>
-                {notice && <p className="error">{notice}</p>}
-              </section>
+            <div
+              onClick={() => switchTab('maison')}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'var(--color-brand)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+              title="Voir ma Maison"
+            >
+              {user.login.slice(0, 1).toUpperCase()}
+            </div>
+          </div>
+        </header>
 
-              {taken && (
-                <section className="card success">
-                  <h2>Tu as pris la demande de @{taken.requester.login} !</h2>
-                  <p>Son terminal et son navigateur viennent d’être connectés.</p>
-                  <button onClick={() => (location.hash = `#/salle/${taken.requestId}`)}>
-                    Entrer dans CodeFlash (Salle SOS)
-                  </button>
-                </section>
+        {/* Grille principale */}
+        <div className={`content-grid ${activeTab === 'decouvrir' ? 'with-panel' : ''}`}>
+          <main>
+            <Suspense fallback={<div className="card"><p>Chargement…</p></div>}>
+              {activeTab === 'decouvrir' && (
+                <Decouvrir
+                  token={token}
+                  user={user}
+                  onGoToAppel={() => switchTab('appel')}
+                  onGoToProjets={() => switchTab('projets')}
+                />
               )}
 
-              <section>
-                <h2>Demandes en direct {available && <small>({alerts.length})</small>}</h2>
-                {!available && <p className="hint">Rends-toi disponible ci-dessus pour recevoir les alertes.</p>}
-                {available && alerts.length === 0 && (
-                  <p className="hint">Aucune demande pour l’instant. Reste sur cette page, tu seras alerté en direct !</p>
-                )}
-                {alerts.map((a) => (
-                  <article key={a.requestId} className="card alert">
-                    <div className="row">
-                      <span className={`stage ${a.stage}`}>{STAGE_LABEL[a.stage]}</span>
-                      <span className="tech">{a.tech.join(' · ') || 'Techno inconnue'}</span>
-                      <span className="hint">
-                        @{a.requester} · {since(a.createdAt, now)}
-                      </span>
+              {activeTab === 'appel' && (
+                <AppelAide
+                  token={token}
+                  user={user}
+                  onSuccess={(reqId) => {
+                    location.hash = `#/salle/${reqId}`;
+                  }}
+                />
+              )}
+
+              {activeTab === 'projets' && (
+                <Projets token={token} user={user} />
+              )}
+
+              {activeTab === 'maison' && (
+                <Maison token={token} user={user} onBack={() => switchTab('decouvrir')} />
+              )}
+
+              {activeTab === 'radar' && (
+                <div>
+                  <section className="card" style={{ marginBottom: '20px' }}>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <HandHelping size={20} color="var(--color-brand)" />
+                      Radar des aidants disponibles
+                    </h2>
+                    <p className="hint">
+                      Coche tes technologies de prédilection et active ta disponibilité pour recevoir les alertes.
+                    </p>
+                    <div className="chips" style={{ marginBottom: '14px' }}>
+                      {KNOWN_TECH.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={tech.includes(t) ? 'chip on' : 'chip'}
+                          onClick={() => toggleTech(t)}
+                        >
+                          {t}
+                        </button>
+                      ))}
                     </div>
-                    <code className="error-line">{a.errorSummary}</code>
-                    <div className="row">
-                      <span className="hint">
-                        $ {a.command} · {a.files} fichier(s)
-                      </span>
-                      <button onClick={() => radar.current?.send({ type: 'accepter', requestId: a.requestId })}>
-                        Accepter & Rejoindre CodeFlash
+                    <button
+                      className={available ? 'secondary' : ''}
+                      onClick={toggleAvailable}
+                      disabled={!connected}
+                      style={{ width: '100%' }}
+                    >
+                      {available ? 'Mettre en pause mes disponibilités' : 'Me rendre disponible sur le Radar'}
+                    </button>
+                    {notice && <p className="error" style={{ marginTop: '8px' }}>{notice}</p>}
+                  </section>
+
+                  {taken && (
+                    <section className="card" style={{ borderColor: 'var(--color-brand)', marginBottom: '16px' }}>
+                      <h3>Demande prise !</h3>
+                      <p>Tu aides actuellement @{taken.requester.login}.</p>
+                      <button onClick={() => (location.hash = `#/salle/${taken.requestId}`)}>
+                        Rejoindre la salle CodeFlash
                       </button>
-                    </div>
-                  </article>
-                ))}
-              </section>
-            </div>
+                    </section>
+                  )}
+
+                  <section>
+                    <h3>Demandes d'entraide {available && <small>({alerts.length})</small>}</h3>
+                    {!available && <p className="hint">Rends-toi disponible ci-dessus pour capter les demandes en direct.</p>}
+                    {available && alerts.length === 0 && (
+                      <p className="hint">Aucune demande en attente. Tu seras alerté dès qu'un développeur est bloqué !</p>
+                    )}
+                    {alerts.map((a) => (
+                      <article key={a.requestId} className="card" style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span className="badge-confirmed">{a.tech.join(' · ') || 'Techno'}</span>
+                          <span className="hint">@{a.requester} · {since(a.createdAt, now)}</span>
+                        </div>
+                        <code style={{ display: 'block', background: 'var(--color-bg)', padding: '8px', borderRadius: '6px', color: 'var(--color-coral)', fontSize: '0.85rem' }}>
+                          {a.errorSummary}
+                        </code>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                          <span className="hint">$ {a.command}</span>
+                          <button onClick={() => radar.current?.send({ type: 'accepter', requestId: a.requestId })}>
+                            Prendre l'appel (CodeFlash)
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </section>
+                </div>
+              )}
+            </Suspense>
+          </main>
+
+          {/* 3. Panneau Droit (320px) : Demandes en direct & Prochaines étapes */}
+          {activeTab === 'decouvrir' && (
+            <aside className="right-panel">
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Demandes en direct</h3>
+                  <span className="dot on" title="Radar actif" />
+                </div>
+                {alerts.length === 0 ? (
+                  <p className="hint" style={{ fontSize: '0.85rem', margin: 0 }}>
+                    Aucun blocage signalé en ce moment. Les voisins codent tranquillement !
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {alerts.slice(0, 3).map((a) => (
+                      <div key={a.requestId} style={{ background: 'var(--color-bg)', padding: '10px', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
+                          <b>{a.tech[0] || 'Code'}</b>
+                          <span className="hint">@{a.requester}</span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--color-coral)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {a.errorSummary}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => switchTab('radar')}
+                  style={{ width: '100%', marginTop: '12px', fontSize: '0.85rem', minHeight: '36px' }}
+                >
+                  Ouvrir le Radar complet
+                </button>
+              </div>
+
+              <div className="card">
+                <h3 style={{ margin: '0 0 8px', fontSize: '1rem' }}>Prochaines étapes</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                  <div>✓ 1. Configurer sa Maison & sa ville</div>
+                  <div>✓ 2. Renseigner sa stack technique</div>
+                  <div style={{ color: 'var(--color-brand)', fontWeight: 600 }}>→ 3. Résoudre un 1er bug pour obtenir le badge Confirmé</div>
+                </div>
+              </div>
+            </aside>
           )}
-        </Suspense>
-      </main>
+        </div>
+      </div>
+
+      {/* 4. Navigation Mobile : Barre Fixe en Bas avec SOS surélevé au centre */}
+      <nav className="bottom-bar">
+        <button
+          className={`bottom-tab ${activeTab === 'decouvrir' ? 'active' : ''}`}
+          onClick={() => switchTab('decouvrir')}
+        >
+          <Compass size={20} />
+          <span>Découvrir</span>
+        </button>
+
+        <button
+          className={`bottom-tab ${activeTab === 'radar' ? 'active' : ''}`}
+          onClick={() => switchTab('radar')}
+        >
+          <HandHelping size={20} />
+          <span>Aider</span>
+        </button>
+
+        {/* Bouton SOS Corail Surélevé */}
+        <button
+          className="bottom-tab sos-floating"
+          onClick={() => switchTab('appel')}
+          title="Appel à l'aide d'urgence"
+        >
+          <LifeBuoy size={24} />
+        </button>
+
+        <button
+          className={`bottom-tab ${activeTab === 'projets' ? 'active' : ''}`}
+          onClick={() => switchTab('projets')}
+        >
+          <FolderGit2 size={20} />
+          <span>Projets</span>
+        </button>
+
+        <button
+          className={`bottom-tab ${activeTab === 'maison' ? 'active' : ''}`}
+          onClick={() => switchTab('maison')}
+        >
+          <House size={20} />
+          <span>Maison</span>
+        </button>
+      </nav>
     </div>
   );
 }

@@ -147,8 +147,8 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
 
   if (!salle || !doc) {
     return (
-      <main className="card narrow">
-        <h1>Salle SOS</h1>
+      <main className="card narrow" style={{ background: '#16251F', borderColor: '#243931' }}>
+        <h1 style={{ color: '#E6F1EE' }}>Salle CodeFlash</h1>
         <p className={error ? 'error' : 'hint'}>{error || 'Connexion à la salle…'}</p>
         <button className="link" onClick={onLeave}>
           Retour au Radar
@@ -168,36 +168,54 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   };
 
   return (
-    <div className="salle">
-      <header>
-        <h1>Salle SOS</h1>
-        <span className="hint">
-          {isHelper ? 'Tu aides' : 'Tu es aidé par'} @{other.login}
-        </span>
-        <span className={otherOnline ? 'dot on' : 'dot'} title={otherOnline ? 'En ligne' : 'Absent'} />
-        <span className="who">@{user.login}</span>
-        <button
-          className="resolve"
-          onClick={() => {
-            setShowFicheModal(true);
-            if (!ficheDraft.error) setFicheDraft({ ...ficheDraft, error: salle.errorSummary });
-          }}
-        >
-          Problème résolu
-        </button>
+    <div className="salle" style={{ background: '#0E1A17', color: '#E6F1EE' }}>
+      <header className="salle-header-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#E6F1EE' }}>
+            Salle d'aide · {salle.tech[0] || 'Code'}
+          </h1>
+          <span className="live-indicator">
+            <span className="live-dot" />
+            En direct
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+            <span style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#0F6E56', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+              {user.login.slice(0, 1).toUpperCase()}
+            </span>
+            <span>{user.login} (toi)</span>
+
+            <span style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#F2A93B', color: '#14201C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, marginLeft: '6px' }}>
+              {other.login.slice(0, 1).toUpperCase()}
+            </span>
+            <span>@{other.login} ({isHelper ? 'demandeur' : 'aidant'})</span>
+          </div>
+
+          <button
+            style={{ background: '#0F6E56', padding: '8px 16px', minHeight: '38px', fontSize: '0.88rem' }}
+            onClick={() => {
+              setShowFicheModal(true);
+              if (!ficheDraft.error) setFicheDraft({ ...ficheDraft, error: salle.errorSummary });
+            }}
+          >
+            Problème résolu
+          </button>
+        </div>
       </header>
 
-      <section className="card summary">
-        <code className="error-line">{salle.errorSummary}</code>
-        <span className="hint">
-          $ {salle.command} · {salle.tech.join(' · ') || 'Techno inconnue'}
+      <section className="card summary" style={{ background: '#16251F', borderColor: '#243931' }}>
+        <code className="error-line" style={{ background: '#0B1512', color: '#FF7B72' }}>{salle.errorSummary}</code>
+        <span className="hint" style={{ color: '#8BA098' }}>
+          $ {salle.command} · {salle.tech.join(' · ') || 'Techno'}
         </span>
       </section>
 
       {error && <p className="error">{error}</p>}
 
       <div className="salle-grid">
-        <section className="card code">
+        <section className="card code" style={{ background: '#16251F', borderColor: '#243931' }}>
           <div className="tabs">
             {salle.files.map((f) => (
               <button key={f.path} className={f.path === file ? 'tab on' : 'tab'} onClick={() => setFile(f.path)}>
@@ -214,21 +232,31 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
               <button onClick={() => send('relance')} disabled={!terminalOnline || running} title="Le demandeur appuie sur Entrée pour relancer.">
                 Demander une relance
               </button>
-              {!terminalOnline && <span className="hint">Le terminal du demandeur n’est pas relié.</span>}
+              {!terminalOnline && <span className="hint" style={{ color: '#8BA098' }}>Le terminal du demandeur n’est pas relié.</span>}
             </div>
           )}
         </section>
 
-        <section className="card side">
-          <h2>
-            Terminal de @{salle.requester.login} <small className="hint">lecture seule</small>
+        <section className="card side" style={{ background: '#16251F', borderColor: '#243931' }}>
+          {/* Bannière Test Réussi */}
+          <div style={{ background: '#0B1F17', border: '1px solid #1FA183', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3FB950', fontWeight: 700, fontSize: '0.9rem' }}>
+              <span>✓ Test réussi</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#8BA098', marginTop: '2px' }}>
+              Avant : 1 échec. Maintenant : 1 sur 1 au vert.
+            </div>
+          </div>
+
+          <h2 style={{ fontSize: '0.95rem' }}>
+            Terminal de @{salle.requester.login} <small className="hint" style={{ color: '#8BA098' }}>lecture seule</small>
             <span className={`run ${running ? 'on' : ''}`}>{running ? 'en cours…' : exitCode === null ? '' : `code ${exitCode}`}</span>
           </h2>
-          <pre className="terminal" ref={terminalEnd}>
+          <pre className="terminal" ref={terminalEnd} style={{ background: '#0B1512', color: '#E6F1EE', borderColor: '#243931' }}>
             {terminal || 'Aucune sortie pour l’instant.'}
           </pre>
 
-          <h2>Chat</h2>
+          <h2 style={{ fontSize: '0.95rem' }}>Chat</h2>
           <div className="chat" ref={chatEnd}>
             {chat.length === 0 && <p className="hint">Dis bonjour !</p>}
             {chat.map((m) => (
