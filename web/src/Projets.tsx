@@ -1,44 +1,26 @@
 import { useEffect, useState } from 'react';
-import {
-  Plus,
-  Share2,
-  Flag,
-  Users,
-  CheckCircle2,
-  Clock,
-  ListTodo,
-} from 'lucide-react';
-import { KNOWN_TECH } from '@sos/shared';
 import { addProjectTask, createProject, getProjects, joinProject, updateProjectTaskStatus, type CommunityProject } from './api.js';
-import { SignalerModal } from './SignalerModal.js';
 
-export function Projets({ token, user }: { token: string; user: { login: string } }) {
+interface ProjetsProps {
+  token: string;
+  user: { login: string };
+}
+
+export function Projets({ token, user }: ProjetsProps) {
   const [projects, setProjects] = useState<CommunityProject[]>([]);
   const [filter, setFilter] = useState<'tous' | 'cherchent'>('tous');
-  const [selectedProject, setSelectedProject] = useState<CommunityProject | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [reportingProject, setReportingProject] = useState<CommunityProject | null>(null);
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
-
-  // Form states
-  const [newTitle, setNewTitle] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-  const [newTech, setNewTech] = useState<string[]>(['TypeScript', 'React']);
-  const [newRoles, setNewRoles] = useState('');
-  const [newCity, setNewCity] = useState('Cotonou');
-  const [newCountry, setNewCountry] = useState('Bénin');
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
+  // Formulaire nouveau projet épuré
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newRoles, setNewRoles] = useState('');
+  const [newCity, setNewCity] = useState('Cotonou');
+
   const loadProjects = () => {
-    getProjects()
-      .then((list) => {
-        setProjects(list);
-        if (selectedProject) {
-          const updated = list.find((p) => p.id === selectedProject.id);
-          if (updated) setSelectedProject(updated);
-        }
-      })
-      .catch(() => {});
+    getProjects().then(setProjects).catch(() => {});
   };
 
   useEffect(() => {
@@ -47,49 +29,42 @@ export function Projets({ token, user }: { token: string; user: { login: string 
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newTitle.trim()) return;
     try {
-      const roles = newRoles
-        .split(',')
-        .map((r) => r.trim())
-        .filter(Boolean);
-
+      const roles = newRoles.split(',').map((r) => r.trim()).filter(Boolean);
       await createProject(token, {
-        title: newTitle,
-        description: newDesc,
-        tech: newTech,
-        neededRoles: roles.length ? roles : ['Contributeur Open Source'],
+        title: newTitle.trim(),
+        description: newDesc.trim() || 'Projet communautaire',
+        tech: ['TypeScript', 'React'],
+        neededRoles: roles.length ? roles : ['Développeur'],
         city: newCity,
-        country: newCountry,
+        country: 'Bénin',
       });
-
       setShowCreateModal(false);
       setNewTitle('');
       setNewDesc('');
       setNewRoles('');
       loadProjects();
-      setActionNotice('🎉 Projet publié avec succès !');
-      setTimeout(() => setActionNotice(null), 3500);
     } catch (err) {
       alert((err as Error).message);
     }
   };
 
-  const handleJoin = async (projectId: string) => {
+  const handleJoin = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
     try {
-      const res = await joinProject(token, projectId);
+      await joinProject(token, projectId);
       loadProjects();
-      setActionNotice(res.message);
-      setTimeout(() => setActionNotice(null), 3500);
     } catch (err) {
       alert((err as Error).message);
     }
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
+  const handleAddTask = async (e: React.FormEvent, projectId: string) => {
     e.preventDefault();
-    if (!selectedProject || !newTaskTitle.trim()) return;
+    if (!newTaskTitle.trim()) return;
     try {
-      await addProjectTask(token, selectedProject.id, newTaskTitle.trim(), user.login);
+      await addProjectTask(token, projectId, newTaskTitle.trim(), user.login);
       setNewTaskTitle('');
       loadProjects();
     } catch (err) {
@@ -97,19 +72,14 @@ export function Projets({ token, user }: { token: string; user: { login: string 
     }
   };
 
-  const handleUpdateTask = async (taskId: string, newStatus: 'a_faire' | 'en_cours' | 'termine') => {
-    if (!selectedProject) return;
+  const handleToggleTask = async (projectId: string, taskId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'termine' ? 'a_faire' : 'termine';
     try {
-      await updateProjectTaskStatus(token, selectedProject.id, taskId, newStatus);
+      await updateProjectTaskStatus(token, projectId, taskId, nextStatus);
       loadProjects();
     } catch (err) {
       alert((err as Error).message);
     }
-  };
-
-  const shareProjectOnWhatsApp = (proj: CommunityProject) => {
-    const text = `🚀 Découvre le projet KoraDevs : ${proj.title}\n\n${proj.description}\nCherche : ${proj.neededRoles.join(' · ')}\n\nRejoins l'équipe sur KoraDevs !`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const displayedProjects = filter === 'cherchent'
@@ -117,272 +87,231 @@ export function Projets({ token, user }: { token: string; user: { login: string 
     : projects;
 
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      {/* 1. HAUT : Titre, bouton +, Filtres rapides */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <h1 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 700 }}>Projets</h1>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          style={{ minHeight: '36px', padding: '6px 12px', fontSize: '0.85rem' }}
-        >
-          <Plus size={16} />
-          Nouveau
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Haut : Titre + Bouton + et Onglets texte */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 600, margin: 0 }}>
+            Projets
+          </h1>
 
-      {actionNotice && (
-        <div style={{ background: 'var(--color-brand-soft)', border: '1px solid var(--color-brand)', color: 'var(--color-brand)', padding: '8px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem' }}>
-          {actionNotice}
+          <button
+            type="button"
+            className="link-text"
+            onClick={() => setShowCreateModal(true)}
+            style={{ fontSize: '1.3rem', fontWeight: 500, padding: '4px 8px' }}
+            title="Publier un projet"
+          >
+            +
+          </button>
         </div>
-      )}
 
-      {/* Filtres rapides : Tous / Cherchent du monde */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button
-          type="button"
-          className={filter === 'tous' ? '' : 'secondary'}
-          onClick={() => setFilter('tous')}
-          style={{ minHeight: '36px', padding: '6px 16px', fontSize: '0.85rem' }}
-        >
-          Tous
-        </button>
-        <button
-          type="button"
-          className={filter === 'cherchent' ? '' : 'secondary'}
-          onClick={() => setFilter('cherchent')}
-          style={{ minHeight: '36px', padding: '6px 16px', fontSize: '0.85rem' }}
-        >
-          Cherchent du monde
-        </button>
+        {/* Deux onglets texte : Tous / Cherchent du monde */}
+        <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--line)', paddingBottom: '10px' }}>
+          <button
+            type="button"
+            className="link-text"
+            onClick={() => setFilter('tous')}
+            style={{
+              color: filter === 'tous' ? 'var(--ink)' : 'var(--mute)',
+              fontWeight: filter === 'tous' ? 600 : 400,
+              fontSize: '0.95rem',
+            }}
+          >
+            Tous
+          </button>
+          <button
+            type="button"
+            className="link-text"
+            onClick={() => setFilter('cherchent')}
+            style={{
+              color: filter === 'cherchent' ? 'var(--ink)' : 'var(--mute)',
+              fontWeight: filter === 'cherchent' ? 600 : 400,
+              fontSize: '0.95rem',
+            }}
+          >
+            Cherchent du monde
+          </button>
+        </div>
       </div>
 
-      {/* 2. MILIEU : Cartes avec rôles recherchés en surbrillance Soleil léger */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {displayedProjects.map((p) => {
-          const isMember = p.members.includes(user.login);
-          const isSelected = selectedProject?.id === p.id;
+      {/* Liste épurée à filets fins */}
+      <div className="divider-list">
+        {displayedProjects.length === 0 ? (
+          <div style={{ padding: '24px 0', textAlign: 'center' }}>
+            <p className="text-mute" style={{ margin: 0 }}>
+              Aucun projet trouvé. Sois le premier à présenter une idée !
+            </p>
+          </div>
+        ) : (
+          displayedProjects.map((p) => {
+            const isMember = p.members.includes(user.login);
+            const isExpanded = selectedProjectId === p.id;
 
-          return (
-            <div key={p.id} className="card" style={{ padding: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                <h2 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--color-text)' }}>{p.title}</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={() => shareProjectOnWhatsApp(p)}
-                    style={{ color: '#25D366' }}
-                    title="Partager sur WhatsApp"
-                  >
-                    <Share2 size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={() => setReportingProject(p)}
-                    style={{ color: 'var(--color-slate)' }}
-                    title="Signaler"
-                  >
-                    <Flag size={15} />
-                  </button>
-                </div>
-              </div>
+            return (
+              <div
+                key={p.id}
+                style={{
+                  borderBottom: '1px solid var(--line)',
+                  padding: '16px 0',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setSelectedProjectId(isExpanded ? null : p.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '1rem', display: 'block' }}>
+                      {p.title}
+                    </span>
+                    <span className="text-mute" style={{ fontSize: '0.82rem', display: 'block', margin: '2px 0 4px 0' }}>
+                      {p.city} · {p.members.length} membre{p.members.length > 1 ? 's' : ''}
+                    </span>
+                    {p.neededRoles.length > 0 && (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
+                        Cherche : <span style={{ color: 'var(--ink)' }}>{p.neededRoles.join(', ')}</span>
+                      </span>
+                    )}
+                  </div>
 
-              <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                Par @{p.author} · {p.city} · {p.members.length} membre{p.members.length > 1 ? 's' : ''}
-              </div>
-
-              <p style={{ margin: '0 0 12px', fontSize: '0.92rem', color: 'var(--color-text)', lineHeight: 1.4 }}>
-                {p.description}
-              </p>
-
-              <div className="chips" style={{ marginBottom: '12px' }}>
-                {p.tech.map((t) => (
-                  <span key={t} className="chip" style={{ fontSize: '0.75rem', padding: '2px 8px', minHeight: '24px' }}>
-                    {t}
-                  </span>
-                ))}
-              </div>
-
-              {/* Rôles recherchés en surbrillance claire (Soleil léger) */}
-              {p.neededRoles.length > 0 && (
-                <div
-                  style={{
-                    background: 'var(--color-sun-soft)',
-                    border: '1px solid rgba(242, 169, 59, 0.4)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '0.85rem',
-                    marginBottom: '14px',
-                    color: '#8C5609',
-                  }}
-                >
-                  <b>Cherche :</b> {p.neededRoles.join(' · ')}
-                </div>
-              )}
-
-              {/* 3. BAS : Tâches (x) et Rejoindre */}
-              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => setSelectedProject(isSelected ? null : p)}
-                  style={{ flex: 1, minHeight: '38px', padding: '6px 12px', fontSize: '0.85rem' }}
-                >
-                  <ListTodo size={16} />
-                  Tâches ({p.tasks.length})
-                </button>
-
-                {!isMember ? (
-                  <button
-                    type="button"
-                    onClick={() => handleJoin(p.id)}
-                    style={{ minHeight: '38px', padding: '6px 16px', fontSize: '0.85rem' }}
-                  >
-                    Rejoindre
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '0.85rem', color: 'var(--color-brand)', fontWeight: 600, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-                    ✓ Membre
-                  </span>
-                )}
-              </div>
-
-              {/* Tableau de tâches dépliable */}
-              {isSelected && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-                  <h3 style={{ fontSize: '0.95rem', marginBottom: '10px' }}>Tâches du projet</h3>
-
-                  <form onSubmit={handleAddTask} style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-                    <input
-                      type="text"
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      placeholder="Ajouter une tâche (ex: Formulaire de contact)…"
-                      style={{ flex: 1, fontSize: '0.85rem', padding: '6px 10px' }}
-                    />
-                    <button type="submit" style={{ minHeight: '36px', padding: '6px 12px', fontSize: '0.85rem' }}>
-                      Ajouter
-                    </button>
-                  </form>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {p.tasks.length === 0 ? (
-                      <p className="hint" style={{ fontSize: '0.82rem' }}>Aucune tâche pour l'instant.</p>
+                  <div>
+                    {!isMember ? (
+                      <button
+                        type="button"
+                        className="link-text"
+                        onClick={(e) => handleJoin(e, p.id)}
+                        style={{ fontWeight: 600, fontSize: '0.9rem' }}
+                      >
+                        Rejoindre
+                      </button>
                     ) : (
-                      p.tasks.map((t) => (
-                        <div
-                          key={t.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '8px 12px',
-                            background: 'var(--color-bg)',
-                            borderRadius: '6px',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          <span style={{ textDecoration: t.status === 'termine' ? 'line-through' : 'none', color: t.status === 'termine' ? 'var(--color-slate)' : 'var(--color-text)' }}>
-                            {t.title}
-                          </span>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            {t.status !== 'termine' ? (
-                              <button
-                                type="button"
-                                className="link"
-                                onClick={() => handleUpdateTask(t.id, 'termine')}
-                                style={{ fontSize: '0.8rem', color: 'var(--color-brand)' }}
-                              >
-                                ✓ Valider
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: 'var(--color-brand)' }}>Fait</span>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                      <span className="text-mute" style={{ fontSize: '0.85rem' }}>
+                        Membre
+                      </span>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {/* Tâches légères dépliées */}
+                {isExpanded && (
+                  <div
+                    style={{
+                      marginTop: '14px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--line)',
+                      cursor: 'default',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.5 }}>
+                      {p.description}
+                    </p>
+
+                    <span className="section-label">Tâches ({p.tasks.length})</span>
+
+                    <form onSubmit={(e) => handleAddTask(e, p.id)} style={{ display: 'flex', gap: '8px', margin: '8px 0 12px 0' }}>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        placeholder="Ajouter une tâche…"
+                        style={{ height: '36px', fontSize: '0.85rem' }}
+                      />
+                      <button type="submit" className="link-text" style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                        Ajouter
+                      </button>
+                    </form>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {p.tasks.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => handleToggleTask(p.id, t.id, t.status)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            color: t.status === 'termine' ? 'var(--mute)' : 'var(--ink)',
+                            textDecoration: t.status === 'termine' ? 'line-through' : 'none',
+                          }}
+                        >
+                          <span style={{ color: t.status === 'termine' ? 'var(--accent)' : 'var(--mute)' }}>
+                            {t.status === 'termine' ? '✓' : '○'}
+                          </span>
+                          <span>{t.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* Modal Nouveau Projet */}
+      {/* Modale de publication minimale */}
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '12px' }}>Présenter un projet</h2>
-            <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+        <div className="modal-backdrop" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Présenter un projet</h2>
+
+            <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
                 Titre du projet
                 <input
                   type="text"
+                  className="input-field"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="ex: KoraPay Mobile"
                   required
-                  style={{ width: '100%', marginTop: '4px' }}
+                  style={{ marginTop: '4px' }}
                 />
               </label>
 
-              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
                 Description
                 <textarea
+                  className="textarea-field"
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Ce que fait le projet, le problème qu'il résout…"
-                  rows={3}
-                  required
-                  style={{ width: '100%', marginTop: '4px' }}
+                  placeholder="Ce que fait le projet…"
+                  rows={2}
+                  style={{ marginTop: '4px' }}
                 />
               </label>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Ville
-                  <input type="text" value={newCity} onChange={(e) => setNewCity(e.target.value)} style={{ width: '100%', marginTop: '4px' }} />
-                </label>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                  Pays
-                  <input type="text" value={newCountry} onChange={(e) => setNewCountry(e.target.value)} style={{ width: '100%', marginTop: '4px' }} />
-                </label>
-              </div>
-
-              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                Rôles recherchés (ex: UI/UX, Backend Python)
+              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
+                Rôles recherchés (séparés par des virgules)
                 <input
                   type="text"
+                  className="input-field"
                   value={newRoles}
                   onChange={(e) => setNewRoles(e.target.value)}
-                  placeholder="UI/UX · Backend Node"
-                  style={{ width: '100%', marginTop: '4px' }}
+                  placeholder="UI/UX, Backend Node"
+                  style={{ marginTop: '4px' }}
                 />
               </label>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                <button type="button" className="secondary" onClick={() => setShowCreateModal(false)}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className="link-text"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{ color: 'var(--mute)' }}
+                >
                   Annuler
                 </button>
-                <button type="submit">Publier</button>
+                <button type="submit" className="link-text" style={{ fontWeight: 600 }}>
+                  Publier
+                </button>
               </div>
             </form>
           </div>
         </div>
-      )}
-
-      {reportingProject && (
-        <SignalerModal
-          token={token}
-          targetType="projet"
-          targetId={reportingProject.id}
-          targetTitle={reportingProject.title}
-          onClose={() => setReportingProject(null)}
-        />
       )}
     </div>
   );
