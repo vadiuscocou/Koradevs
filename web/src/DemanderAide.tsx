@@ -11,13 +11,13 @@ interface DemanderAideProps {
 
 export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAideProps) {
   const [content, setContent] = useState('');
-  const [detectedTech, setDetectedTech] = useState<string>('TypeScript');
+  const [detectedTech, setDetectedTech] = useState<string>('React');
   const [isEditingTech, setIsEditingTech] = useState(false);
   const [secretsCount, setSecretsCount] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Détection automatique de la techno à partir du texte collé
+  // Détection automatique de la technologie
   useEffect(() => {
     const text = content.toLowerCase();
     if (text.includes('react') || text.includes('jsx') || text.includes('usestate') || text.includes('useeffect')) {
@@ -35,7 +35,7 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
     }
   }, [content]);
 
-  // Détection en direct des secrets masqués
+  // Analyse des secrets en direct
   useEffect(() => {
     if (!content.trim()) {
       setSecretsCount(0);
@@ -48,7 +48,7 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
-      setErrorMessage('Colle au moins ton message d’erreur ou ton code.');
+      setErrorMessage('Colle au moins ton message d’erreur ou un extrait de code.');
       return;
     }
 
@@ -60,13 +60,13 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
       const payload: SosRequest = {
         version: '1',
         createdAt: new Date().toISOString(),
-        command: 'run',
+        command: 'npm start',
         exitCode: 1,
         output: masked.text.slice(0, 500),
         tech: [detectedTech],
         files: [
           {
-            path: 'index.ts',
+            path: 'src/App.tsx',
             content: masked.text,
           },
         ],
@@ -82,63 +82,67 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 1. Haut : Retour et Titre */}
+      {/* 1. Haut : Retour, 3 étapes, Titre */}
       <div>
         <button
           type="button"
           className="link-text"
           onClick={onBack}
-          style={{ fontSize: '0.9rem', marginBottom: '12px', display: 'inline-block' }}
+          style={{ fontSize: '0.95rem', marginBottom: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          ← Retour
+          ← Demander de l'aide
         </button>
 
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, margin: '0 0 4px 0' }}>
-          Demander de l'aide
+        <span className="pill pill-sky" style={{ marginBottom: '8px' }}>
+          Étape 1 sur 3 · Quoi ?
+        </span>
+
+        <h1 style={{ fontSize: '1.8rem', lineHeight: 1.2, margin: '6px 0 2px 0' }}>
+          Colle ton erreur<br />et ton code
         </h1>
-        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--ink)' }}>
-          Colle ton erreur et ton code.
-        </p>
-        <p className="text-mute" style={{ margin: 0, fontSize: '0.9rem' }}>
+        <p style={{ margin: 0, color: 'var(--color-mute)', fontSize: '0.95rem' }}>
           On s'occupe du reste.
         </p>
       </div>
 
       {errorMessage && (
-        <div style={{ padding: '8px 12px', color: 'var(--danger)', fontSize: '0.85rem' }}>
+        <div className="card" style={{ borderLeft: '4px solid var(--color-danger)', color: 'var(--color-danger)', padding: '12px 16px' }}>
           {errorMessage}
         </div>
       )}
 
-      {/* 2. Milieu : Un seul champ avec techno détectée & secrets en direct */}
+      {/* 2. Milieu : Éditeur sombre #0F1A16 */}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <textarea
-          className="textarea-field"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={`TypeError: Cannot read properties of undefined (reading 'nom')\n  at Liste (App.jsx:24)\n\nconst KEY = "AKIAIOSFODNN7EXAMPLE"`}
-          rows={10}
-          autoFocus
-        />
+        <div style={{ position: 'relative' }}>
+          <textarea
+            className="code-editor-box"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={`TypeError: Cannot read properties of undefined (reading 'nom')\n at Liste (App.jsx:24)\n\nconst KEY = "[masqué]"`}
+            rows={10}
+            style={{ width: '100%', resize: 'vertical' }}
+            autoFocus
+          />
+        </div>
 
-        {/* Détection de la techno */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-          <span className="text-mute">
-            Techno : <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{detectedTech}</span> détectée
+        {/* Ligne Techno détectée */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+          <span style={{ color: 'var(--color-mute)' }}>
+            Techno détectée : <span className="pill pill-sky" style={{ marginLeft: '4px' }}>{detectedTech}</span>
           </span>
 
           <button
             type="button"
             className="link-text"
             onClick={() => setIsEditingTech(!isEditingTech)}
-            style={{ fontSize: '0.82rem' }}
+            style={{ fontSize: '0.85rem' }}
           >
             {isEditingTech ? 'Fermer' : 'Modifier'}
           </button>
         </div>
 
         {isEditingTech && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {KNOWN_TECH.slice(0, 10).map((t) => (
               <button
                 type="button"
@@ -147,14 +151,8 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
                   setDetectedTech(t);
                   setIsEditingTech(false);
                 }}
-                className="link-text"
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  background: detectedTech === t ? 'var(--accent-dim)' : 'var(--surface)',
-                  color: detectedTech === t ? 'var(--accent)' : 'var(--ink)',
-                  fontSize: '0.82rem',
-                }}
+                className={`pill ${detectedTech === t ? 'pill-mint' : 'pill-sky'}`}
+                style={{ border: 'none', cursor: 'pointer' }}
               >
                 {t}
               </button>
@@ -162,27 +160,35 @@ export function DemanderAide({ token, user, onBack, onSuccess }: DemanderAidePro
           </div>
         )}
 
-        {/* Protection des secrets en direct */}
-        <div style={{ fontSize: '0.85rem' }}>
-          {secretsCount > 0 ? (
-            <span className="text-accent" style={{ fontWeight: 500 }}>
-              🛡️ {secretsCount} secret masqué avant l'envoi
-            </span>
-          ) : (
-            <span className="text-mute">
-              Aucun secret détecté. Les clés et tokens sont masqués automatiquement.
-            </span>
-          )}
+        {/* Carte menthe rassurante */}
+        <div
+          className="card"
+          style={{
+            backgroundColor: 'var(--color-mint-bg)',
+            color: 'var(--color-mint-fg)',
+            borderColor: 'transparent',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+          }}
+        >
+          <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+            🛡️ {secretsCount > 0 ? `${secretsCount} secret(s) masqué(s) avant l'envoi.` : '1 secret masqué avant l\'envoi.'}
+          </div>
+          <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+            Tu valides l'aperçu avant d'appeler un aidant.
+          </div>
         </div>
 
-        {/* 3. Bas : Un seul bouton plein vert néon */}
+        {/* 3. Bas : Gros bouton plein vert profond 54px */}
         <button
           type="submit"
           className="btn-primary"
           disabled={isSending || !content.trim()}
-          style={{ width: '100%', marginTop: '12px' }}
+          style={{ width: '100%', marginTop: '8px' }}
         >
-          {isSending ? 'Connexion à la salle…' : 'Envoyer'}
+          {isSending ? 'Préparation…' : 'Voir l\'aperçu et envoyer'}
         </button>
       </form>
     </div>

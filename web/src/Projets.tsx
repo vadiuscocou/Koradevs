@@ -13,10 +13,11 @@ export function Projets({ token, user }: ProjetsProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
-  // Formulaire nouveau projet épuré
+  // Formulaire nouveau projet
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newRoles, setNewRoles] = useState('');
+  const [newTech, setNewTech] = useState('TypeScript, React');
   const [newCity, setNewCity] = useState('Cotonou');
 
   const loadProjects = () => {
@@ -32,10 +33,11 @@ export function Projets({ token, user }: ProjetsProps) {
     if (!newTitle.trim()) return;
     try {
       const roles = newRoles.split(',').map((r) => r.trim()).filter(Boolean);
+      const techList = newTech.split(',').map((t) => t.trim()).filter(Boolean);
       await createProject(token, {
         title: newTitle.trim(),
-        description: newDesc.trim() || 'Projet communautaire',
-        tech: ['TypeScript', 'React'],
+        description: newDesc.trim() || 'Projet communautaire développé avec soin.',
+        tech: techList.length ? techList : ['TypeScript', 'React'],
         neededRoles: roles.length ? roles : ['Développeur'],
         city: newCity,
         country: 'Bénin',
@@ -87,162 +89,228 @@ export function Projets({ token, user }: ProjetsProps) {
     : projects;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Haut : Titre + Bouton + et Onglets texte */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 600, margin: 0 }}>
-            Projets
-          </h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* 1. Haut : Titre + Bouton créer + Filtres */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>
+              Projets communautaires
+            </h1>
+            <p className="text-mute" style={{ margin: '4px 0 0 0', fontSize: '0.92rem' }}>
+              Les bâtisseurs se rassemblent pour concevoir et livrer ensemble.
+            </p>
+          </div>
 
           <button
             type="button"
-            className="link-text"
+            className="btn-primary"
             onClick={() => setShowCreateModal(true)}
-            style={{ fontSize: '1.3rem', fontWeight: 500, padding: '4px 8px' }}
-            title="Publier un projet"
+            style={{ height: '42px', padding: '0 20px', fontSize: '14px', borderRadius: '9999px' }}
           >
-            +
+            + Proposer
           </button>
         </div>
 
-        {/* Deux onglets texte : Tous / Cherchent du monde */}
-        <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--line)', paddingBottom: '10px' }}>
+        {/* Deux onglets : Tous / Cherchent du monde */}
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button
             type="button"
-            className="link-text"
+            className={`bottom-tab ${filter === 'tous' ? 'active' : ''}`}
             onClick={() => setFilter('tous')}
-            style={{
-              color: filter === 'tous' ? 'var(--ink)' : 'var(--mute)',
-              fontWeight: filter === 'tous' ? 600 : 400,
-              fontSize: '0.95rem',
-            }}
+            style={{ fontSize: '0.9rem' }}
           >
-            Tous
+            Tous les projets ({projects.length})
           </button>
           <button
             type="button"
-            className="link-text"
+            className={`bottom-tab ${filter === 'cherchent' ? 'active' : ''}`}
             onClick={() => setFilter('cherchent')}
-            style={{
-              color: filter === 'cherchent' ? 'var(--ink)' : 'var(--mute)',
-              fontWeight: filter === 'cherchent' ? 600 : 400,
-              fontSize: '0.95rem',
-            }}
+            style={{ fontSize: '0.9rem' }}
           >
-            Cherchent du monde
+            Cherchent du monde ({projects.filter((p) => p.neededRoles.length > 0).length})
           </button>
         </div>
       </div>
 
-      {/* Liste épurée à filets fins */}
-      <div className="divider-list">
+      {/* 2. Liste de cartes blanches arrondies 22px */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {displayedProjects.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center' }}>
+          <div className="card" style={{ padding: '36px 20px', textAlign: 'center' }}>
             <p className="text-mute" style={{ margin: 0 }}>
-              Aucun projet trouvé. Sois le premier à présenter une idée !
+              Aucun projet pour ce filtre. Sois le premier à présenter une idée !
             </p>
           </div>
         ) : (
           displayedProjects.map((p) => {
             const isMember = p.members.includes(user.login);
             const isExpanded = selectedProjectId === p.id;
+            const completedCount = p.tasks.filter((t) => t.status === 'termine').length;
 
             return (
               <div
                 key={p.id}
+                className="card"
                 style={{
-                  borderBottom: '1px solid var(--line)',
-                  padding: '16px 0',
                   cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                  borderColor: isExpanded ? 'var(--color-green)' : 'var(--color-line)',
                 }}
                 onClick={() => setSelectedProjectId(isExpanded ? null : p.id)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                  <div>
-                    <span style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '1rem', display: 'block' }}>
-                      {p.title}
-                    </span>
-                    <span className="text-mute" style={{ fontSize: '0.82rem', display: 'block', margin: '2px 0 4px 0' }}>
-                      {p.city} · {p.members.length} membre{p.members.length > 1 ? 's' : ''}
-                    </span>
-                    {p.neededRoles.length > 0 && (
-                      <span style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-                        Cherche : <span style={{ color: 'var(--ink)' }}>{p.neededRoles.join(', ')}</span>
+                {/* En-tête de la carte */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--color-ink)', fontSize: '1.1rem' }}>
+                        {p.title}
                       </span>
-                    )}
+                      <span className="text-mute" style={{ fontSize: '0.82rem' }}>
+                        📍 {p.city} · {p.members.length} membre{p.members.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.92rem', color: 'var(--color-ink)', lineHeight: 1.5 }}>
+                      {p.description}
+                    </p>
                   </div>
 
-                  <div>
+                  {/* Bouton pilule vert sombre "Rejoindre" ou pastille "Membre" */}
+                  <div style={{ flexShrink: 0 }}>
                     {!isMember ? (
                       <button
                         type="button"
-                        className="link-text"
+                        className="btn-pill-deep"
                         onClick={(e) => handleJoin(e, p.id)}
-                        style={{ fontWeight: 600, fontSize: '0.9rem' }}
                       >
                         Rejoindre
                       </button>
                     ) : (
-                      <span className="text-mute" style={{ fontSize: '0.85rem' }}>
-                        Membre
+                      <span className="pill pill-mint">
+                        ✓ Membre
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Tâches légères dépliées */}
+                {/* Étiquettes : Ciel pour technos, Pêche pour rôles */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                  {p.tech.map((t) => (
+                    <span key={t} className="pill pill-sky">
+                      {t}
+                    </span>
+                  ))}
+
+                  {p.neededRoles.map((role) => (
+                    <span key={role} className="pill pill-peach">
+                      Cherche : {role}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Barre de résumé / Dépliage */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid var(--color-line)', fontSize: '0.84rem' }}>
+                  <span className="text-mute">
+                    {p.tasks.length === 0
+                      ? 'Aucune tâche définie'
+                      : `${completedCount}/${p.tasks.length} tâche${p.tasks.length > 1 ? 's' : ''} terminée${completedCount > 1 ? 's' : ''}`}
+                  </span>
+                  <span className="link-text" style={{ fontSize: '0.85rem' }}>
+                    {isExpanded ? 'Masquer les tâches ▲' : 'Voir les tâches ▼'}
+                  </span>
+                </div>
+
+                {/* Section détaillée des tâches */}
                 {isExpanded && (
                   <div
                     style={{
-                      marginTop: '14px',
-                      paddingTop: '12px',
-                      borderTop: '1px solid var(--line)',
+                      paddingTop: '8px',
                       cursor: 'default',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <p style={{ margin: '0 0 10px 0', fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.5 }}>
-                      {p.description}
-                    </p>
-
-                    <span className="section-label">Tâches ({p.tasks.length})</span>
-
-                    <form onSubmit={(e) => handleAddTask(e, p.id)} style={{ display: 'flex', gap: '8px', margin: '8px 0 12px 0' }}>
+                    {/* Formulaire ajout tâche */}
+                    <form onSubmit={(e) => handleAddTask(e, p.id)} style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="text"
-                        className="input-field"
+                        className="input-box"
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
-                        placeholder="Ajouter une tâche…"
-                        style={{ height: '36px', fontSize: '0.85rem' }}
+                        placeholder="Ajouter une tâche au chantier…"
+                        style={{ height: '40px', padding: '0 14px', fontSize: '0.88rem' }}
                       />
-                      <button type="submit" className="link-text" style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                      <button
+                        type="submit"
+                        className="btn-primary"
+                        style={{ height: '40px', padding: '0 18px', fontSize: '0.88rem', borderRadius: '14px', whiteSpace: 'nowrap' }}
+                      >
                         Ajouter
                       </button>
                     </form>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {p.tasks.map((t) => (
-                        <div
-                          key={t.id}
-                          onClick={() => handleToggleTask(p.id, t.id, t.status)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            color: t.status === 'termine' ? 'var(--mute)' : 'var(--ink)',
-                            textDecoration: t.status === 'termine' ? 'line-through' : 'none',
-                          }}
-                        >
-                          <span style={{ color: t.status === 'termine' ? 'var(--accent)' : 'var(--mute)' }}>
-                            {t.status === 'termine' ? '✓' : '○'}
-                          </span>
-                          <span>{t.title}</span>
-                        </div>
-                      ))}
+                    {/* Liste des tâches */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {p.tasks.length === 0 ? (
+                        <p className="text-mute" style={{ fontSize: '0.85rem', margin: 0 }}>
+                          Pas encore de tâches. Ajoute la première ci-dessus !
+                        </p>
+                      ) : (
+                        p.tasks.map((t) => (
+                          <div
+                            key={t.id}
+                            onClick={() => handleToggleTask(p.id, t.id, t.status)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              borderRadius: '12px',
+                              backgroundColor: 'var(--color-bg)',
+                              cursor: 'pointer',
+                              border: '1px solid var(--color-line)',
+                              transition: 'all 150ms ease',
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                backgroundColor: t.status === 'termine' ? 'var(--color-green)' : 'transparent',
+                                color: t.status === 'termine' ? '#FFFFFF' : 'var(--color-mute)',
+                                border: t.status === 'termine' ? 'none' : '2px solid var(--color-mute)',
+                              }}
+                            >
+                              {t.status === 'termine' ? '✓' : ''}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.9rem',
+                                color: t.status === 'termine' ? 'var(--color-mute)' : 'var(--color-ink)',
+                                textDecoration: t.status === 'termine' ? 'line-through' : 'none',
+                                flex: 1,
+                              }}
+                            >
+                              {t.title}
+                            </span>
+                            {t.assignee && (
+                              <span className="text-mute" style={{ fontSize: '0.78rem' }}>
+                                @{t.assignee}
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -252,61 +320,92 @@ export function Projets({ token, user }: ProjetsProps) {
         )}
       </div>
 
-      {/* Modale de publication minimale */}
+      {/* 3. Modale création de projet */}
       {showCreateModal && (
-        <div className="modal-backdrop" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Présenter un projet</h2>
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.35rem', marginBottom: '8px' }}>Proposer un projet</h2>
+            <p className="text-mute" style={{ fontSize: '0.88rem', margin: '0 0 20px 0' }}>
+              Rassemble des pairs autour d'une idée utile pour la communauté.
+            </p>
 
             <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-                Titre du projet
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
+                  Titre du projet
+                </label>
                 <input
                   type="text"
-                  className="input-field"
+                  className="input-box"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="ex: KoraPay Mobile"
+                  placeholder="ex: KoraPay Mobile ou Passerelle SMS"
                   required
-                  style={{ marginTop: '4px' }}
                 />
-              </label>
+              </div>
 
-              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-                Description
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
+                  Description de la mission
+                </label>
                 <textarea
                   className="textarea-field"
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Ce que fait le projet…"
-                  rows={2}
-                  style={{ marginTop: '4px' }}
+                  placeholder="Ce que construit le projet, pourquoi c'est utile…"
+                  rows={3}
                 />
-              </label>
+              </div>
 
-              <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-                Rôles recherchés (séparés par des virgules)
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
+                  Technologies utilisées (séparées par des virgules)
+                </label>
                 <input
                   type="text"
-                  className="input-field"
+                  className="input-box"
+                  value={newTech}
+                  onChange={(e) => setNewTech(e.target.value)}
+                  placeholder="TypeScript, React, Python…"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
+                  Profils recherchés (séparés par des virgules)
+                </label>
+                <input
+                  type="text"
+                  className="input-box"
                   value={newRoles}
                   onChange={(e) => setNewRoles(e.target.value)}
-                  placeholder="UI/UX, Backend Node"
-                  style={{ marginTop: '4px' }}
+                  placeholder="UI/UX, Backend Node, Testeur…"
                 />
-              </label>
+              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '8px' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
+                  Ville de base
+                </label>
+                <input
+                  type="text"
+                  className="input-box"
+                  value={newCity}
+                  onChange={(e) => setNewCity(e.target.value)}
+                  placeholder="Cotonou, Lomé, Dakar…"
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
                 <button
                   type="button"
-                  className="link-text"
+                  className="btn-secondary"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ color: 'var(--mute)' }}
                 >
                   Annuler
                 </button>
-                <button type="submit" className="link-text" style={{ fontWeight: 600 }}>
-                  Publier
+                <button type="submit" className="btn-primary" style={{ height: '42px', padding: '0 24px', fontSize: '14px' }}>
+                  Publier le projet
                 </button>
               </div>
             </form>

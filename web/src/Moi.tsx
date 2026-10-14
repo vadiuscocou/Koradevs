@@ -13,7 +13,7 @@ export function Moi({ token, user, onDoorStatusChange, onLogout }: MoiProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [verifiedNotice, setVerifiedNotice] = useState<string | null>(null);
 
-  // Éléments modifiables
+  // Formulaire d'édition
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
 
@@ -69,28 +69,56 @@ export function Moi({ token, user, onDoorStatusChange, onLogout }: MoiProps) {
     );
   }
 
+  const initialLetter = (profile.login || user.login || 'D').charAt(0).toUpperCase();
   const sha256Short = '5ab9c5…06';
   const sha256Full = '5ab9c57d81ef34a10c920e8a719c23b906de31ac';
+  const isDoorOpen = profile.doorStatus === 'ouverte';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* 1. Haut : Pseudo, Ville, Interrupteur Porte */}
-      <section style={{ borderBottom: '1px solid var(--line)', paddingBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 600, margin: '0 0 2px 0' }}>
-              @{profile.login}
-            </h1>
-            <span className="text-mute" style={{ fontSize: '0.95rem' }}>
-              {profile.city}, {profile.country}
-            </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* 1. Haut : Avatar rond + Infos + Interrupteur Porte */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Avatar rond avec initiale sur fond vert doux */}
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--color-mint-bg)',
+                color: 'var(--color-mint-fg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '22px',
+                fontWeight: 800,
+                boxShadow: 'inset 0 0 0 2px rgba(18, 161, 80, 0.2)',
+              }}
+            >
+              {initialLetter}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>
+                  @{profile.login}
+                </h1>
+                <span className="pill pill-mint">
+                  ● en ligne
+                </span>
+              </div>
+              <span className="text-mute" style={{ fontSize: '0.92rem', display: 'block', marginTop: '2px' }}>
+                📍 {profile.city}, {profile.country}
+              </span>
+            </div>
           </div>
 
           <button
             type="button"
-            className="link-text"
+            className="btn-secondary"
             onClick={() => setIsEditing(!isEditing)}
-            style={{ fontSize: '0.85rem' }}
+            style={{ height: '36px', padding: '0 14px', fontSize: '13px' }}
           >
             {isEditing ? 'Fermer' : 'Modifier'}
           </button>
@@ -98,166 +126,286 @@ export function Moi({ token, user, onDoorStatusChange, onLogout }: MoiProps) {
 
         {/* Formulaire discret si édition */}
         {isEditing && (
-          <form onSubmit={handleSave} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <form
+            onSubmit={handleSave}
+            style={{
+              display: 'flex',
+              gap: '10px',
+              padding: '14px',
+              backgroundColor: 'var(--color-bg)',
+              borderRadius: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
             <input
               type="text"
-              className="input-field"
+              className="input-box"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="Ville"
-              style={{ height: '36px', fontSize: '0.85rem' }}
+              placeholder="Ville (ex: Cotonou)"
+              style={{ flex: 1, minWidth: '130px', height: '40px' }}
               required
             />
             <input
               type="text"
-              className="input-field"
+              className="input-box"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="Pays"
-              style={{ height: '36px', fontSize: '0.85rem' }}
+              placeholder="Pays (ex: Bénin)"
+              style={{ flex: 1, minWidth: '130px', height: '40px' }}
               required
             />
-            <button type="submit" className="link-text" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ height: '40px', padding: '0 20px', fontSize: '13px', borderRadius: '12px' }}
+            >
               Enregistrer
             </button>
           </form>
         )}
 
-        {/* Interrupteur épuré Porte ouverte / Porte fermée */}
+        {/* Interrupteur « Porte ouverte / Porte fermée » vert vif #12A150 */}
         <div
           onClick={toggleDoor}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            padding: '14px 16px',
+            backgroundColor: isDoorOpen ? 'rgba(18, 161, 80, 0.08)' : 'var(--color-bg)',
+            border: `1px solid ${isDoorOpen ? 'rgba(18, 161, 80, 0.3)' : 'var(--color-line)'}`,
+            borderRadius: '16px',
             cursor: 'pointer',
-            paddingTop: '8px',
+            transition: 'all 200ms ease',
           }}
         >
           <div>
-            <span style={{ fontWeight: 600, color: profile.doorStatus === 'ouverte' ? 'var(--accent)' : 'var(--mute)', display: 'block', fontSize: '0.95rem' }}>
-              {profile.doorStatus === 'ouverte' ? 'Porte ouverte' : 'Porte fermée'}
-            </span>
-            <span className="text-mute" style={{ fontSize: '0.82rem' }}>
-              {profile.doorStatus === 'ouverte'
-                ? 'Les voisins peuvent te solliciter.'
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontWeight: 800,
+                  fontSize: '0.98rem',
+                  color: isDoorOpen ? 'var(--color-green)' : 'var(--color-mute)',
+                }}
+              >
+                {isDoorOpen ? 'Porte ouverte' : 'Porte fermée'}
+              </span>
+              <span className={`pill ${isDoorOpen ? 'pill-mint' : ''}`} style={{ fontSize: '11px' }}>
+                {isDoorOpen ? 'Disponible' : 'Occupé'}
+              </span>
+            </div>
+            <span className="text-mute" style={{ fontSize: '0.84rem', display: 'block', marginTop: '3px' }}>
+              {isDoorOpen
+                ? 'Les voisins peuvent te solliciter pour un coup de main.'
                 : 'Tu n’es pas disponible pour aider actuellement.'}
             </span>
           </div>
 
+          {/* Toggle Levier interactif */}
           <div
             style={{
-              width: '40px',
-              height: '22px',
+              width: '48px',
+              height: '28px',
               borderRadius: '9999px',
-              backgroundColor: profile.doorStatus === 'ouverte' ? 'var(--accent)' : 'var(--line)',
+              backgroundColor: isDoorOpen ? 'var(--color-green)' : 'var(--color-line)',
               position: 'relative',
-              transition: 'background-color 150ms ease',
+              transition: 'background-color 200ms ease',
+              flexShrink: 0,
             }}
           >
             <div
               style={{
-                width: '16px',
-                height: '16px',
+                width: '22px',
+                height: '22px',
                 borderRadius: '50%',
-                backgroundColor: profile.doorStatus === 'ouverte' ? 'var(--bg)' : 'var(--mute)',
+                backgroundColor: '#FFFFFF',
                 position: 'absolute',
                 top: '3px',
-                left: profile.doorStatus === 'ouverte' ? '21px' : '3px',
-                transition: 'left 150ms ease',
+                left: isDoorOpen ? '23px' : '3px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                transition: 'left 200ms cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* 2. Milieu : PASSEPORT */}
-      <section style={{ borderBottom: '1px solid var(--line)', paddingBottom: '24px' }}>
-        <span className="section-label">PASSEPORT</span>
+      {/* 2. Milieu : Carte Passeport vert profond #0F3D2A */}
+      <div
+        className="card-hero"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}
+      >
+        <div className="hero-circle-1" />
+        <div className="hero-circle-2" />
 
-        <div style={{ marginTop: '12px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '3rem', fontWeight: 700, color: 'var(--accent)', lineHeight: 1 }}>
+        {/* En-tête Passeport */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 }}>
+          <span
+            style={{
+              color: 'var(--color-neon)',
+              fontWeight: 800,
+              fontSize: '13px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            PASSEPORT DÉVELOPPEUR
+          </span>
+          <span
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              color: '#FFFFFF',
+              borderRadius: '9999px',
+              padding: '3px 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+            }}
+          >
+            Vérifié par test ✓
+          </span>
+        </div>
+
+        {/* Chiffre vedette vert néon #4DF08C */}
+        <div style={{ zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+            <span
+              style={{
+                fontSize: '3.6rem',
+                fontWeight: 900,
+                color: 'var(--color-neon)',
+                lineHeight: 1,
+                letterSpacing: '-0.03em',
+              }}
+            >
               {profile.confirmedCount || 3}
             </span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--ink)' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>
               aides confirmées
             </span>
           </div>
-          <span className="text-mute" style={{ fontSize: '0.88rem', display: 'block', marginTop: '4px' }}>
-            2 fiches · 1 projet
+
+          <span style={{ fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.75)', display: 'block', marginTop: '6px' }}>
+            2 fiches validées · 1 projet actif
           </span>
         </div>
 
         {/* Preuves réelles avec coches */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+        <div
+          style={{
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            backgroundColor: 'rgba(0, 0, 0, 0.22)',
+            borderRadius: '16px',
+            padding: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-            <span className="text-accent" style={{ fontWeight: 600 }}>✓</span>
-            <span style={{ color: 'var(--ink)' }}>Erreur d'import ESM corrigée</span>
+            <span style={{ color: 'var(--color-neon)', fontWeight: 800 }}>✓</span>
+            <span style={{ color: '#FFFFFF' }}>Erreur d'import ESM corrigée</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-            <span className="text-accent" style={{ fontWeight: 600 }}>✓</span>
-            <span style={{ color: 'var(--ink)' }}>CORS Socket.io résolu</span>
+            <span style={{ color: 'var(--color-neon)', fontWeight: 800 }}>✓</span>
+            <span style={{ color: '#FFFFFF' }}>CORS Socket.io résolu</span>
           </div>
         </div>
 
         {/* Empreinte vérifiable */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-          <span className="text-mute">
-            Empreinte <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink)' }}>{sha256Short}</code>
+        <div
+          style={{
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.86rem',
+            paddingTop: '6px',
+          }}
+        >
+          <span style={{ color: 'rgba(255, 255, 255, 0.75)' }}>
+            Empreinte : <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-neon)', fontWeight: 700 }}>{sha256Short}</code>
           </span>
 
           <button
             type="button"
-            className="link-text"
             onClick={() => {
               setVerifiedNotice(`Empreinte SHA-256 authentique : ${sha256Full}`);
-              setTimeout(() => setVerifiedNotice(null), 4000);
+              setTimeout(() => setVerifiedNotice(null), 5000);
             }}
-            style={{ fontSize: '0.85rem' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-neon)',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
           >
             Vérifier
           </button>
         </div>
 
         {verifiedNotice && (
-          <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--accent)', wordBreak: 'break-all' }}>
+          <div
+            style={{
+              zIndex: 1,
+              fontSize: '0.82rem',
+              color: 'var(--color-neon)',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              wordBreak: 'break-all',
+            }}
+          >
             ✓ {verifiedNotice}
           </div>
         )}
-      </section>
+      </div>
 
-      {/* 3. Bas : Partager et Exporter en PDF */}
-      <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <button
-            type="button"
-            className="link-text"
-            onClick={handleShare}
-            style={{ fontSize: '0.92rem' }}
-          >
-            Partager
-          </button>
-
-          <button
-            type="button"
-            className="link-text"
-            onClick={() => window.print()}
-            style={{ fontSize: '0.92rem' }}
-          >
-            Exporter en PDF
-          </button>
-        </div>
-
+      {/* 3. Bas : Bouton principal néon 54px + Bouton secondaire PDF + Se déconnecter */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <button
           type="button"
-          className="link-text"
-          onClick={onLogout}
-          style={{ fontSize: '0.85rem', color: 'var(--mute)' }}
+          className="btn-hero"
+          onClick={handleShare}
+          style={{ width: '100%' }}
         >
-          Se déconnecter
+          🔗 Partager mon Passeport
         </button>
-      </section>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => window.print()}
+          >
+            📄 Exporter en PDF
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-mute)',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

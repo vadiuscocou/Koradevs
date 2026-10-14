@@ -36,9 +36,9 @@ function Editor({ doc, path, line }: { doc: Y.Doc; path: string; line?: number }
           ...language(path),
           yCollab(text, null),
           EditorView.theme({
-            '&': { height: '100%', backgroundColor: '#0C0F10', color: '#E8EEEA' },
+            '&': { height: '100%', backgroundColor: '#0F1A16', color: '#E8EEEA' },
             '.cm-content': { fontFamily: 'var(--font-mono)', fontSize: '14px' },
-            '.cm-gutters': { backgroundColor: '#0C0F10', color: '#8A9892', borderRight: '1px solid #242B2E' },
+            '.cm-gutters': { backgroundColor: '#0F1A16', color: '#5E7568', borderRight: '1px solid #1C2E26' },
           }),
         ],
       }),
@@ -246,36 +246,46 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         </div>
       )}
 
-      {/* 4. Bas : Test réussi, Chat, et bouton Problème résolu */}
+      {/* 4. Bas : Carte menthe du test réussi, Chat, et bouton vert néon Problème résolu */}
       <footer className="salle-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div>
-            <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.88rem', display: 'block' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              backgroundColor: 'var(--color-mint-bg)',
+              color: 'var(--color-mint-fg)',
+              padding: '6px 14px',
+              borderRadius: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <span style={{ fontWeight: 800, fontSize: '0.86rem' }}>
               ✓ Test réussi
             </span>
-            <span className="text-mute" style={{ fontSize: '0.78rem' }}>
+            <span style={{ fontSize: '0.74rem', opacity: 0.9 }}>
               Avant : 1 échec. Maintenant : 1 sur 1.
             </span>
           </div>
 
           <button
             type="button"
-            className="link-text"
+            className="btn-secondary"
             onClick={() => setShowChat(!showChat)}
-            style={{ fontSize: '0.85rem' }}
+            style={{ height: '36px', padding: '0 14px', fontSize: '0.85rem', borderColor: '#2A4437', color: '#E8EEEA' }}
           >
-            {showChat ? 'Masquer Chat' : `Chat (${chat.length})`}
+            {showChat ? 'Masquer Chat' : `💬 Chat (${chat.length})`}
           </button>
         </div>
 
         {/* Le seul bouton plein vert néon de l'écran */}
         <button
           type="button"
-          className="btn-primary"
+          className="btn-hero"
           onClick={() => {
             setShowFicheModal(true);
             if (!ficheDraft.error) setFicheDraft({ error: salle.errorSummary, cause: 'Erreur identifiée et corrigée', fix: 'Code ajusté dans la session' });
           }}
+          style={{ height: '46px', padding: '0 24px', fontSize: '15px' }}
         >
           Problème résolu
         </button>

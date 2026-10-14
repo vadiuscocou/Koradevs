@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { PublicUser, RadarAlert, ServerMessage, SolutionHit } from '@sos/shared';
 import { connectRadar, forgetToken, loginDev, logout, me, savedToken } from './api.js';
 import { Logo } from './Logo.js';
+import { ThemeToggle } from './ThemeToggle.js';
 
 // 4 Écrans + 1 Parcours
 const Accueil = lazy(() => import('./Accueil.js').then((m) => ({ default: m.Accueil })));
@@ -24,12 +25,24 @@ const tabFromHash = (): MainTab => {
   return 'accueil';
 };
 
-function Login({ onLogin }: { onLogin: (token: string, user: PublicUser) => void }) {
+function Login({
+  onLogin,
+  isDark,
+  onToggleTheme,
+}: {
+  onLogin: (token: string, user: PublicUser) => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
+}) {
   const [pseudo, setPseudo] = useState('');
   const [error, setError] = useState('');
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg)', padding: '16px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg)', padding: '16px', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+        <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
+      </div>
+
       <main style={{ maxWidth: '360px', width: '100%', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <Logo size={42} showSlogan={true} />
@@ -84,6 +97,25 @@ export function App() {
   const [connected, setConnected] = useState(false);
   const [alerts, setAlerts] = useState<RadarAlert[]>([]);
   const [isDoorOpen, setIsDoorOpen] = useState(true);
+
+  // Levier mode clair / mode sombre
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('kd.theme');
+    if (saved) return saved === 'dark';
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('kd.theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('kd.theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark((d) => !d);
 
   // Recherche ou fiche sélectionnée pour navigation fluide vers Fiches
   const [fichesSearchQuery, setFichesSearchQuery] = useState('');
@@ -149,7 +181,7 @@ export function App() {
     }
   };
 
-  if (!token || !user) return <Login onLogin={(t, u) => { setToken(t); setUser(u); }} />;
+  if (!token || !user) return <Login onLogin={(t, u) => { setToken(t); setUser(u); }} isDark={isDark} onToggleTheme={toggleTheme} />;
 
   // 1. Salle CodeFlash en plein écran
   if (salleId) {
@@ -210,20 +242,29 @@ export function App() {
             </button>
           </nav>
 
-          {/* Statut et Profil */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Levier de thème, Statut et Profil */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+
             <div className="status-indicator">
-              <span className={`status-dot ${connected ? '' : 'text-mute'}`} style={{ backgroundColor: connected ? 'var(--accent)' : 'var(--mute)' }} />
-              <span style={{ fontSize: '0.8rem' }}>{connected ? 'en ligne' : 'hors ligne'}</span>
+              <span
+                className="status-dot"
+                style={{
+                  backgroundColor: connected ? 'var(--color-green)' : 'var(--color-mute)',
+                }}
+              />
+              <span style={{ fontSize: '0.82rem' }}>
+                {connected ? 'en ligne' : 'hors ligne'}
+              </span>
             </div>
 
             <span
               onClick={() => switchTab('moi')}
               style={{
-                fontSize: '0.88rem',
-                color: activeTab === 'moi' ? 'var(--accent)' : 'var(--ink)',
+                fontSize: '0.9rem',
+                color: activeTab === 'moi' ? 'var(--color-green)' : 'var(--color-ink)',
                 cursor: 'pointer',
-                fontWeight: 500,
+                fontWeight: 700,
               }}
               title="Voir mon profil"
             >
