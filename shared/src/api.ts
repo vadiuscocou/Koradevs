@@ -29,6 +29,10 @@ export interface RequestSummary {
   tech: string[];
   command: string;
   exitCode: number;
+  /** The most telling line of the error, already masked. */
+  errorSummary: string;
+  /** Login of the helper who took the request, once accepted. */
+  helper: string | null;
   files: number;
   createdAt: string;
   /** The code is erased from the server at this date. */

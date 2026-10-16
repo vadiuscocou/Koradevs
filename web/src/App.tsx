@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, DoorClosed, DoorOpen, FolderKanban, Home, LifeBuoy, LogOut, User } from 'lucide-react';
-import type { PublicUser, RadarAlert, RadarStage, ServerMessage, SolutionHit } from '@sos/shared';
+import type { PublicUser, RadarAlert, RadarStage, RequestSummary, ServerMessage, SolutionHit } from '@sos/shared';
 import {
   connectRadar,
   consumeOAuthHash,
@@ -8,6 +8,7 @@ import {
   getCommunityProfile,
   logout,
   me,
+  myRequests,
   savedToken,
   updateCommunityProfile,
   type CommunityProfile,
@@ -58,6 +59,9 @@ export interface Shared {
   alerts: RadarAlert[];
   connected: boolean;
   waiting: Waiting | null;
+  /** My requests that are still alive (open, or taken by a helper). */
+  mine: RequestSummary[];
+  refreshMine: () => void;
   follow: (requestId: string) => void;
   stopFollowing: () => void;
   accept: (requestId: string) => void;
@@ -113,6 +117,9 @@ function Root() {
   const [connected, setConnected] = useState(false);
   const [alerts, setAlerts] = useState<RadarAlert[]>([]);
   const [waiting, setWaiting] = useState<Waiting | null>(null);
+  const waitingRef = useRef<Waiting | null>(null);
+  waitingRef.current = waiting;
+  const [mine, setMine] = useState<RequestSummary[]>([]);
   const [ficheQuery, setFicheQuery] = useState('');
   const [ficheOpen, setFicheOpen] = useState<SolutionHit | null>(null);
   const radar = useRef<Radar | null>(null);
@@ -154,6 +161,28 @@ function Root() {
 
   const inSalle = route.salle !== null;
 
+  /** Requests stay open for up to 24 h: coming back later, we find them again (and re-follow the open ones). */
+  const refreshMine = useCallback(() => {
+    if (!token) return;
+    myRequests(token).then(
+      (list) => {
+        const alive = list.filter((r) => r.status === 'ouverte' || r.status === 'acceptee');
+        setMine(alive);
+        const open = alive.find((r) => r.status === 'ouverte');
+        if (open) {
+          if (!waitingRef.current) setWaiting({ requestId: open.id, stage: 'ciblee', alerted: 0, online: 0 });
+          // The server only tells us when a helper takes the request if this connection follows it.
+          radar.current?.send({ type: 'suivre', requestId: open.id });
+        }
+      },
+      () => undefined,
+    );
+  }, [token]);
+
+  useEffect(() => {
+    if (token && user) refreshMine();
+  }, [token, user, refreshMine, route.salle]);
+
   useEffect(() => {
     if (!token || !user || inSalle) return;
     const onMessage = (m: ServerMessage) => {
@@ -161,6 +190,7 @@ function Root() {
         case 'bienvenue':
           setConnected(true);
           syncRadar(profileRef.current);
+          refreshMine();
           break;
         case 'alerte':
           setAlerts((list) => [m.alert, ...list.filter((a) => a.requestId !== m.alert.requestId)]);
@@ -177,12 +207,19 @@ function Root() {
           setWaiting((w) => (w && w.requestId === m.requestId ? { ...w, stage: m.stage, alerted: m.alerted, online: m.online } : w));
           break;
         case 'acceptee':
-          setWaiting(null);
-          toast('ok', `@${m.helper.login} arrive`, 'Tu entres dans la salle d’aide.');
-          location.hash = `#/salle/${m.requestId}`;
+          if (waitingRef.current?.requestId === m.requestId && location.hash === '#/demander') {
+            setWaiting(null);
+            toast('ok', `@${m.helper.login} arrive`, 'Tu entres dans la salle d’aide.');
+            location.hash = `#/salle/${m.requestId}`;
+          } else {
+            setWaiting((w) => (w?.requestId === m.requestId ? null : w));
+            toast('ok', `@${m.helper.login} t’attend dans la salle`, 'Retrouve ta demande sur l’accueil.');
+            refreshMine();
+          }
           break;
         case 'fermee':
           setWaiting((w) => (w?.requestId === m.requestId ? null : w));
+          refreshMine();
           break;
         case 'sonnette':
           toast('ok', `@${m.from} sonne à ta porte`, 'Il ou elle aimerait ton aide.');
@@ -199,7 +236,7 @@ function Root() {
       radar.current = null;
       setConnected(false);
     };
-  }, [token, user, inSalle, syncRadar, toast]);
+  }, [token, user, inSalle, syncRadar, toast, refreshMine]);
 
   const go = useCallback((hash: string) => {
     location.hash = hash;
@@ -270,11 +307,17 @@ function Root() {
     alerts,
     connected,
     waiting,
+    mine,
+    refreshMine,
     follow: (requestId) => {
       setWaiting({ requestId, stage: 'ciblee', alerted: 0, online: 0 });
       radar.current?.send({ type: 'suivre', requestId });
+      refreshMine();
     },
-    stopFollowing: () => setWaiting(null),
+    stopFollowing: () => {
+      setWaiting(null);
+      refreshMine();
+    },
     accept: (requestId) => radar.current?.send({ type: 'accepter', requestId }),
     setDoor,
     go,

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BellRing, BookOpen, DoorOpen, LifeBuoy, Radio, Search, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BellRing, BookOpen, Clock, DoorOpen, LifeBuoy, Radio, Search, Sparkles, Users } from 'lucide-react';
 import type { SolutionHit } from '@sos/shared';
-import { getConfirmedIds, getNeighbors, getRecentSolutions, ringNeighbor, type CommunityProfile } from './api.js';
+import { cancelRequest, getConfirmedIds, getNeighbors, getRecentSolutions, ringNeighbor, type CommunityProfile } from './api.js';
 import type { Shared } from './App.js';
-import { Avatar, Badge, Empty, Skeletons, useToast } from './ui.js';
+import { Avatar, Badge, Empty, Skeletons, timeAgo, useToast } from './ui.js';
 
 export function Accueil({ shared }: { shared: Shared }) {
-  const { token, user, profile, alerts, connected, go } = shared;
+  const { token, user, profile, alerts, connected, go, mine } = shared;
   const toast = useToast();
   const [neighbors, setNeighbors] = useState<CommunityProfile[] | null>(null);
   const [solutions, setSolutions] = useState<SolutionHit[] | null>(null);
@@ -49,6 +49,50 @@ export function Accueil({ shared }: { shared: Shared }) {
           </button>
         </div>
       </section>
+
+      {mine.length > 0 && (
+        <section>
+          <div className="section-head">
+            <h2 className="section-title">Mes demandes</h2>
+            <Badge tone="peach">{mine.length}</Badge>
+          </div>
+          <div className="col">
+            {mine.map((r) => (
+              <div key={r.id} className={`alert-card ${r.status === 'acceptee' ? 'live' : ''}`}>
+                {r.status === 'acceptee' && r.helper ? <Avatar name={r.helper} /> : <Clock size={22} color="var(--faint)" />}
+                <div className="grow">
+                  <strong>
+                    {r.status === 'acceptee' ? `@${r.helper ?? 'un aidant'} t’attend dans la salle` : 'En attente d’un aidant'}
+                  </strong>
+                  <span className="error-line" title={r.errorSummary}>{r.errorSummary || r.command}</span>
+                  <span className="small faint">
+                    {r.tech.join(' · ')} · {timeAgo(r.createdAt)}
+                    {r.status === 'ouverte' && ' · reste ouverte jusqu’à 24 h'}
+                  </span>
+                </div>
+                {r.status === 'acceptee' ? (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => go(`#/salle/${r.id}`)}>Entrer</button>
+                ) : (
+                  <>
+                    <button type="button" className="btn btn-soft btn-sm" onClick={() => go('#/demander')}>Voir</button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      aria-label="Annuler cette demande"
+                      onClick={async () => {
+                        await cancelRequest(token, r.id).catch(() => undefined);
+                        shared.stopFollowing();
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <form
         className="search"

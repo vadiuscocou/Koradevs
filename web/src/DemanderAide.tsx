@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, Send, ShieldCheck, X } from 'lucide-react';
 import { KNOWN_TECH, detectTech, errorSummary, maskSecrets, type SolutionHit, type SosRequest } from '@sos/shared';
 import { cancelRequest, createWebRequest, searchSolutions } from './api.js';
@@ -49,6 +49,19 @@ export function DemanderAide({ shared }: { shared: Shared }) {
   const [techTouched, setTechTouched] = useState(false);
   const [matches, setMatches] = useState<SolutionHit[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [waitingMatches, setWaitingMatches] = useState<SolutionHit[]>([]);
+
+  useEffect(() => {
+    if (waiting) setStep(3);
+  }, [waiting]);
+
+  const waitingSummary = shared.mine.find((r) => r.id === waiting?.requestId);
+  const waitingTech = waitingSummary?.tech[0];
+  const waitingError = waitingSummary?.errorSummary;
+  useEffect(() => {
+    if (step !== 3 || !waitingError) return;
+    searchSolutions(waitingError, waitingTech).then((list) => setWaitingMatches(list.slice(0, 3)), () => undefined);
+  }, [step, waitingError, waitingTech]);
 
   const effectiveFile = fileName.trim() || `code.${EXTENSIONS[tech] ?? 'txt'}`;
   const detected = useMemo(() => guessTech(error, code, effectiveFile), [error, code, effectiveFile]);
@@ -282,7 +295,25 @@ export function DemanderAide({ shared }: { shared: Shared }) {
               Aucun aidant n’est connecté en ce moment. Ta demande reste ouverte : garde cette page ouverte, ou réessaie plus tard.
             </div>
           )}
-          <p className="faint small">Garde cette page ouverte : tu entreras dans la salle dès qu’un aidant accepte.</p>
+          <div className="card tight small" style={{ maxWidth: 460, textAlign: 'left' }}>
+            <strong>Tu peux fermer cette page.</strong>
+            <div className="muted">
+              Ta demande reste ouverte jusqu’à 24 h. Reviens quand tu veux : tu la retrouveras sur l’accueil, et l’aidant t’y attendra dans la salle.
+            </div>
+          </div>
+          {waitingMatches.length > 0 && (
+            <div className="col" style={{ width: '100%', maxWidth: 460, textAlign: 'left' }}>
+              <div className="block-label">En attendant, ces fiches peuvent t’aider</div>
+              {waitingMatches.map((m) => (
+                <button key={m.id} type="button" className="card interactive tight fiche-row" style={{ textAlign: 'left', font: 'inherit', color: 'inherit', width: '100%' }} onClick={() => shared.openFiche(m)}>
+                  <div className="grow">
+                    <strong>{m.title}</strong>
+                  </div>
+                  <BookOpen size={18} />
+                </button>
+              ))}
+            </div>
+          )}
           <button type="button" className="btn btn-ghost" onClick={() => void cancel()}>
             <X size={16} /> Annuler ma demande
           </button>

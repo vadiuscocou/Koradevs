@@ -4,6 +4,7 @@ import {
   LIMITS,
   SENSITIVE_PATTERNS,
   SosRequestSchema,
+  errorSummary,
   maskSecrets,
   type CreatedRequest,
   type RequestDetail,
@@ -21,12 +22,14 @@ const ignore = ignoreModule.default;
 const HOUR = 60 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const summary = (r: StoredRequest): RequestSummary => ({
+const summary = (r: StoredRequest, helper: string | null = null): RequestSummary => ({
   id: r.id,
   status: r.status,
   tech: r.tech,
   command: r.command,
   exitCode: r.exitCode,
+  errorSummary: errorSummary(r.payload.output),
+  helper,
   files: r.payload.files.length,
   createdAt: r.createdAt.toISOString(),
   expiresAt: r.expiresAt.toISOString(),
@@ -106,14 +109,19 @@ export class RequestsService {
   }
 
   async list(user: User): Promise<RequestSummary[]> {
-    return (await this.store.listRequests(user.id, this.now())).map(summary);
+    const requests = await this.store.listRequests(user.id, this.now());
+    return Promise.all(requests.map(async (r) => summary(r, await this.helperLogin(r))));
   }
 
   async get(user: User, id: string): Promise<RequestDetail> {
     const stored = UUID.test(id) ? await this.store.getRequest(id, this.now()) : null;
     if (!stored) throw new NotFoundException('Demande introuvable, ou déjà effacée.');
     if (stored.userId !== user.id) throw new ForbiddenException('Cette demande ne t’appartient pas.');
-    return { ...summary(stored), request: stored.payload };
+    return { ...summary(stored, await this.helperLogin(stored)), request: stored.payload };
+  }
+
+  private async helperLogin(r: StoredRequest): Promise<string | null> {
+    return r.helperId ? ((await this.store.getUser(r.helperId))?.login ?? null) : null;
   }
 
   private pathProblem(filePath: string): string | null {

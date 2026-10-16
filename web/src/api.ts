@@ -1,4 +1,4 @@
-import type { ClientMessage, CreatedRequest, PublicUser, ServerMessage, SessionResponse, SolutionHit, SosRequest } from '@sos/shared';
+import type { ClientMessage, CreatedRequest, PublicUser, RequestSummary, ServerMessage, SessionResponse, SolutionHit, SosRequest } from '@sos/shared';
 
 const TOKEN_KEY = 'sos.token';
 
@@ -58,6 +58,7 @@ export const getConfirmedIds = () => call<string[]>('GET', '/community/confirmed
 // --- Appel à l'aide (depuis le site) ---------------------------------------
 
 export const createWebRequest = (token: string, payload: SosRequest) => call<CreatedRequest>('POST', '/requests', payload, token);
+export const myRequests = (token: string) => call<RequestSummary[]>('GET', '/requests', undefined, token);
 export const cancelRequest = (token: string, id: string) => call<void>('POST', `/requests/${encodeURIComponent(id)}/close`, undefined, token);
 
 // --- Communauté -------------------------------------------------------------
