@@ -26,7 +26,24 @@ export async function loginDev(login: string): Promise<SessionResponse> {
   return session;
 }
 
-export const authConfig = () => call<{ githubClientId: string | null; devAuth: boolean }>('GET', '/auth/config');
+export const authConfig = () => call<{ githubClientId: string | null; devAuth: boolean; githubWeb: boolean }>('GET', '/auth/config');
+
+/** Where the browser goes to start « Continuer avec GitHub ». */
+export const GITHUB_LOGIN_URL = '/api/auth/github/login';
+
+/**
+ * GitHub sends the person back to `#/connexion?token=…` (or `?erreur=…`).
+ * The token is stored, and the address is cleaned so that it never stays in the history.
+ */
+export function consumeOAuthHash(): { token?: string; error?: string } {
+  const match = /^#\/connexion\?(.*)$/.exec(location.hash);
+  if (!match) return {};
+  const params = new URLSearchParams(match[1]);
+  history.replaceState(null, '', location.pathname + location.search);
+  const token = params.get('token') ?? undefined;
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  return { token, error: params.get('erreur') ?? undefined };
+}
 export const me = (token: string) => call<PublicUser>('GET', '/me', undefined, token);
 export const logout = (token: string) => call<void>('POST', '/auth/logout', undefined, token).finally(forgetToken);
 

@@ -24,6 +24,11 @@ export const fakeGithub: GithubClient = {
     if (token === 'gh-awa') return { id: 101, login: 'awa', name: 'Awa Diop', avatar_url: 'https://avatars.example/awa' };
     throw new GithubApiError(401);
   },
+  async exchangeCode({ code, clientSecret }) {
+    if (clientSecret !== 'secret-test') throw new GithubApiError(401);
+    if (code === 'code-awa') return 'gh-awa';
+    throw new GithubApiError(401);
+  },
 };
 
 export async function testApp(config: Partial<AppConfig> = {}) {

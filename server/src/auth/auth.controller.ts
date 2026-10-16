@@ -1,9 +1,18 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import type { User } from '../store/types.js';
 import { parseBody } from '../validation.js';
 import { AuthGuard, CurrentUser, type AuthedRequest } from './auth.guard.js';
 import { AuthService, publicUser } from './auth.service.js';
+import type { AppConfig } from '../config.js';
+import { CONFIG } from '../tokens.js';
+
+const COOKIE = 'sos_oauth';
+const cookie = (value: string, maxAge: number, secure: boolean) =>
+  `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+const readCookie = (header: string | undefined, name: string) =>
+  header?.split(';').map((c) => c.trim().split('=')).find(([k]) => k === name)?.[1];
 
 const GithubLoginSchema = z.object({ accessToken: z.string().min(1).max(500) });
 const DevLoginSchema = z.object({
@@ -15,11 +24,38 @@ export class AuthController {
   constructor(
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject('SOS_STORE') private readonly store: import('../store/types.js').Store,
+    @Inject(CONFIG) private readonly appConfig: AppConfig,
   ) {}
+
+  private get secureCookies(): boolean {
+    return this.appConfig.webUrl.startsWith('https://');
+  }
 
   @Get('auth/config')
   config() {
     return this.auth.publicConfig();
+  }
+
+  /** GitHub button of the website: redirects to GitHub. */
+  @Get('auth/github/login')
+  githubLogin(@Res() res: Response): void {
+    const { url, nonce } = this.auth.startGithubLogin();
+    res.setHeader('Set-Cookie', cookie(nonce, 600, this.secureCookies));
+    res.redirect(302, url);
+  }
+
+  /** GitHub sends the person back here; we then send them to the website with the session token in the URL fragment. */
+  @Get('auth/github/callback')
+  async githubCallback(@Query('code') code: string | undefined, @Query('state') state: string | undefined, @Req() req: Request, @Res() res: Response): Promise<void> {
+    res.setHeader('Set-Cookie', cookie('', 0, this.secureCookies));
+    const back = (params: Record<string, string>) => res.redirect(302, `${this.appConfig.webUrl}/#/connexion?${new URLSearchParams(params)}`);
+    if (typeof code !== 'string' || typeof state !== 'string' || !code || !state) return back({ erreur: 'Connexion GitHub annulée.' });
+    try {
+      const session = await this.auth.finishGithubLogin(code, state, readCookie(req.headers.cookie, COOKIE));
+      return back({ token: session.token });
+    } catch (error) {
+      return back({ erreur: error instanceof Error ? error.message : 'Connexion GitHub impossible.' });
+    }
   }
 
   @Post('auth/github')

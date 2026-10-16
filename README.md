@@ -84,6 +84,17 @@ Dans le terminal : `/relance` pour relancer soi-même, `/resolu`, `/quitter` (ou
 
 Le mode démo (`sos login --dev <pseudo>`) est actif par défaut hors production ; `SOS_DEV_AUTH=0` le coupe.
 
+### Connexion GitHub sur le site
+
+Le bouton « Continuer avec GitHub » demande une OAuth App GitHub (celle du terminal peut servir, avec le callback en plus) :
+
+1. GitHub → Settings → Developer settings → OAuth Apps → **New OAuth App**.
+2. **Homepage URL** : l'adresse publique du site (`http://localhost:5173` en local).
+3. **Authorization callback URL** : `<adresse du site>/api/auth/github/callback` (`http://localhost:5173/api/auth/github/callback` en local).
+4. **Generate a new client secret**, puis mets dans le serveur `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` et `SOS_WEB_URL` (l'adresse du site, sans `/` final).
+
+Sans `GITHUB_CLIENT_SECRET`, le bouton n'apparaît pas. Le secret ne doit jamais être commité. Une fois GitHub en place, mets `SOS_DEV_AUTH=0` pour couper la connexion par pseudo.
+
 ### API
 
 | Route | Rôle |

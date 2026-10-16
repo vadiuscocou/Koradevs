@@ -18,5 +18,14 @@ services:
         value: "1"
       - key: SOS_ALLOW_MEMORY
         value: "1"
+      # Garde la connexion par pseudo tant que GitHub n'est pas configuré. Mets "0" ensuite.
       - key: SOS_DEV_AUTH
         value: "1"
+      # Connexion GitHub : voir README (section « Connexion GitHub sur le site »).
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      # L'adresse publique du service, par exemple https://koradevs.onrender.com (sans / à la fin).
+      - key: SOS_WEB_URL
+        sync: false

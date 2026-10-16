@@ -26,7 +26,7 @@ describe('API SOS Dev', () => {
 
   it('reports its health and public auth config', async () => {
     await http().get('/health').expect(200, { ok: true, store: 'memoire' });
-    await http().get('/auth/config').expect(200, { githubClientId: 'client-test', devAuth: true });
+    await http().get('/auth/config').expect(200, { githubClientId: 'client-test', devAuth: true, githubWeb: false });
   });
 
   describe('connexion', () => {

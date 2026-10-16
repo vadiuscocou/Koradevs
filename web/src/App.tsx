@@ -3,6 +3,7 @@ import { BookOpen, DoorClosed, DoorOpen, FolderKanban, Home, LifeBuoy, LogOut, U
 import type { PublicUser, RadarAlert, RadarStage, ServerMessage, SolutionHit } from '@sos/shared';
 import {
   connectRadar,
+  consumeOAuthHash,
   forgetToken,
   getCommunityProfile,
   logout,
@@ -104,8 +105,9 @@ export function App() {
 function Root() {
   const toast = useToast();
   const [dark, toggleTheme] = useTheme();
+  const [oauth] = useState(consumeOAuthHash);
   const [route, setRoute] = useState<Route>(readRoute);
-  const [token, setToken] = useState<string | null>(savedToken());
+  const [token, setToken] = useState<string | null>(oauth.token ?? savedToken());
   const [user, setUser] = useState<PublicUser | null>(null);
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
   const [connected, setConnected] = useState(false);
@@ -116,6 +118,14 @@ function Root() {
   const radar = useRef<Radar | null>(null);
   const profileRef = useRef<CommunityProfile | null>(null);
   profileRef.current = profile;
+
+  const oauthShown = useRef(false);
+  useEffect(() => {
+    if (oauth.error && !oauthShown.current) {
+      oauthShown.current = true;
+      toast('error', 'Connexion GitHub impossible', oauth.error);
+    }
+  }, [oauth, toast]);
 
   useEffect(() => {
     const onHash = () => {

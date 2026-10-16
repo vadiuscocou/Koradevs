@@ -19,6 +19,7 @@ import { SolutionsController } from './solutions/solutions.controller.js';
 import { SolutionsService } from './solutions/solutions.service.js';
 import { CommunityController } from './community/community.controller.js';
 import { CommunityService } from './community/community.service.js';
+import { authRateLimit, securityHeaders } from './security.js';
 import type { Store } from './store/types.js';
 import { CLOCK, CONFIG, GITHUB, STORE, type Clock } from './tokens.js';
 
@@ -57,6 +58,10 @@ export async function createApp(deps: AppDeps, logger: LogLevel[] | false = ['er
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(deps), { bodyParser: false, logger });
   // A request holds up to 200 KB of files, JSON-escaped.
   app.useBodyParser('json', { limit: '1mb' });
+  // Behind Render or Nginx: the real client address is the first proxy hop.
+  app.set('trust proxy', 1);
+  app.use(securityHeaders);
+  app.use(authRateLimit());
   if (deps.config.serveWeb) serveWeb(app);
   app.enableShutdownHooks();
   return app;
