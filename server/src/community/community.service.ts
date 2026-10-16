@@ -190,6 +190,18 @@ export class CommunityService {
     return (await this.store.listDocs<ProofDoc>('proof', 1000)).filter((p) => p.testPassed).map((p) => p.solutionId);
   }
 
+  /** Real counters for the home page: nothing is invented, zero stays zero. */
+  async stats(): Promise<{ fiches: number; aides: number; confirmees: number; aidants: number }> {
+    const [solutions, proofs, helperIds] = await Promise.all([
+      this.store.listSolutions(1000),
+      this.store.listDocs<ProofDoc>('proof', 1000),
+      this.store.listHelperIds(),
+    ]);
+    let aidants = 0;
+    for (const id of helperIds) if ((await this.store.getDoc<ProfileDoc>('profile', id))?.doorStatus === 'ouverte') aidants += 1;
+    return { fiches: solutions.length, aides: proofs.length, confirmees: proofs.filter((p) => p.testPassed).length, aidants };
+  }
+
   // --- Projets -------------------------------------------------------------
 
   getProjects(): Promise<CommunityProject[]> {

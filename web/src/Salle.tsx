@@ -257,6 +257,13 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
             {!hasTerminal && isHelper && !testOk && <div className="small" style={{ color: '#8aa095', marginTop: 6 }}>Le demandeur confirme quand son programme fonctionne.</div>}
           </div>
 
+          {!hasTerminal && terminal.trim() && (
+            <div className="test-box" style={{ background: '#1a1210', borderColor: '#4a2a22' }}>
+              <div className="block-label" style={{ color: '#ff9c8a', marginBottom: 6 }}>Erreur du demandeur</div>
+              <pre className="mono" style={{ margin: 0, maxHeight: 130, overflow: 'auto', fontSize: '0.76rem', color: '#ffb4a6', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{terminal}</pre>
+            </div>
+          )}
+
           <div className="row" style={{ padding: '10px 16px 0', gap: 6 }}>
             <button type="button" className={`chip ${tab === 'chat' ? 'on' : ''}`} onClick={() => setTab('chat')}>Chat ({chat.length})</button>
             {hasTerminal && <button type="button" className={`chip ${tab === 'terminal' ? 'on' : ''}`} onClick={() => setTab('terminal')}>Terminal</button>}

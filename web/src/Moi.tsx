@@ -13,6 +13,7 @@ export function Moi({ shared, dark, toggleTheme, onLogout }: { shared: Shared; d
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ city: '', country: '', bio: '' });
   const [busy, setBusy] = useState(false);
+  const [allTech, setAllTech] = useState(false);
 
   useEffect(() => {
     getPassport(user.login).then(setPassport, () => undefined);
@@ -108,11 +109,16 @@ export function Moi({ shared, dark, toggleTheme, onLogout }: { shared: Shared; d
         <div>
           <div className="block-label" style={{ flexWrap: 'wrap' }}>Mes technologies {noTech && <Badge tone="peach">À choisir pour ouvrir ta porte</Badge>}</div>
           <div className="tech-picker">
-            {KNOWN_TECH.map((t) => (
+            {(allTech || noTech ? KNOWN_TECH : profile.tech).map((t) => (
               <button key={t} type="button" className={`chip ${profile.tech.includes(t) ? 'on' : ''}`} aria-pressed={profile.tech.includes(t)} onClick={() => void toggleTech(t)}>
                 {t}
               </button>
             ))}
+            {!noTech && (
+              <button type="button" className="chip" onClick={() => setAllTech((v) => !v)}>
+                {allTech ? 'Réduire' : '+ Ajouter une techno'}
+              </button>
+            )}
           </div>
         </div>
       </section>

@@ -130,6 +130,7 @@ export const updateCommunityProfile = (
 export const getNeighbors = (token: string) => call<CommunityProfile[]>('GET', '/community/neighbors', undefined, token);
 export const ringNeighbor = (token: string, login: string) =>
   call<{ success: boolean; message: string }>('POST', `/community/neighbors/ring/${encodeURIComponent(login)}`, undefined, token);
+export const getStats = () => call<{ fiches: number; aides: number; confirmees: number; aidants: number }>('GET', '/community/stats');
 export const getPassport = (login: string) => call<Passport>('GET', `/community/passport/${encodeURIComponent(login)}`);
 
 export const getProjects = () => call<CommunityProject[]>('GET', '/community/projects');

@@ -43,6 +43,15 @@ describe('Communauté, Passeport et projets', () => {
     expect((await http().get('/community/projects').expect(200)).body).toEqual([]);
   });
 
+  it('gives real counters only', async () => {
+    expect((await http().get('/community/stats').expect(200)).body).toEqual({ fiches: 0, aides: 0, confirmees: 0, aidants: 0 });
+    const awa = await login('awa');
+    await http().put('/community/profile').set(as(awa)).send({ tech: ['JavaScript'], doorStatus: 'ouverte' }).expect(200);
+    expect((await http().get('/community/stats').expect(200)).body.aidants).toBe(1);
+    await http().put('/community/profile').set(as(awa)).send({ doorStatus: 'fermee' }).expect(200);
+    expect((await http().get('/community/stats').expect(200)).body.aidants).toBe(0);
+  });
+
   it('lists only real neighbours with an open door and rings them for real', async () => {
     const awa = await login('awa');
     const koffi = await login('koffi');

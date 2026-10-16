@@ -51,6 +51,11 @@ export class CommunityController {
     return passport;
   }
 
+  @Get('stats')
+  stats() {
+    return this.community.stats();
+  }
+
   @Get('confirmed')
   confirmed() {
     return this.community.confirmedSolutionIds();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BellRing, BookOpen, Clock, DoorOpen, LifeBuoy, Radio, Search, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BellRing, BookOpen, Check, Clock, DoorOpen, LifeBuoy, Radio, Search, Sparkles, Users, X } from 'lucide-react';
 import type { SolutionHit } from '@sos/shared';
-import { cancelRequest, getConfirmedIds, getNeighbors, getRecentSolutions, ringNeighbor, type CommunityProfile } from './api.js';
+import { cancelRequest, getConfirmedIds, getNeighbors, getRecentSolutions, getStats, ringNeighbor, type CommunityProfile } from './api.js';
 import type { Shared } from './App.js';
 import { Avatar, Badge, Empty, Skeletons, timeAgo, useToast } from './ui.js';
 
@@ -13,11 +13,20 @@ export function Accueil({ shared }: { shared: Shared }) {
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [rang, setRang] = useState<Record<string, boolean>>({});
+  const [stats, setStats] = useState<{ fiches: number; aides: number; confirmees: number; aidants: number } | null>(null);
+  const [guideHidden, setGuideHidden] = useState(() => {
+    try {
+      return localStorage.getItem('kd.guide') === '1';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     getNeighbors(token).then(setNeighbors, () => setNeighbors([]));
     getRecentSolutions().then(setSolutions, () => setSolutions([]));
     getConfirmedIds().then((ids) => setConfirmed(new Set(ids)), () => undefined);
+    getStats().then(setStats, () => undefined);
   }, [token]);
 
   const ring = async (login: string) => {
@@ -31,6 +40,20 @@ export function Accueil({ shared }: { shared: Shared }) {
   };
 
   const doorOpen = profile?.doorStatus === 'ouverte';
+  const ready = !!profile && profile.tech.length > 0 && doorOpen;
+  const hideGuide = () => {
+    setGuideHidden(true);
+    try {
+      localStorage.setItem('kd.guide', '1');
+    } catch {
+      /* ignore */
+    }
+  };
+  const steps = [
+    { done: ready, title: 'Choisis tes technos et ouvre ta porte', text: 'Tu reçois en direct les demandes que tu sais résoudre.', action: 'Ouvrir ma porte', go: '#/moi' },
+    { done: mine.length > 0, title: 'Demande de l’aide quand tu bloques', text: 'Colle ton erreur : un voisin te rejoint, même si tu fermes la page.', action: 'Demander', go: '#/demander' },
+    { done: false, title: 'Cherche avant de demander', text: 'Chaque aide résolue devient une fiche que tout le monde retrouve.', action: 'Voir les fiches', go: '#/fiches' },
+  ];
 
   return (
     <div className="stack-lg">
@@ -49,6 +72,38 @@ export function Accueil({ shared }: { shared: Shared }) {
           </button>
         </div>
       </section>
+
+      {stats && (
+        <div className="grid-3" aria-label="Chiffres de la plateforme">
+          <div className="stat-tile"><b>{stats.fiches}</b><span>fiche{stats.fiches > 1 ? 's' : ''} solution{stats.fiches > 1 ? 's' : ''}</span></div>
+          <div className="stat-tile"><b>{stats.aides}</b><span>aide{stats.aides > 1 ? 's' : ''} publiée{stats.aides > 1 ? 's' : ''}</span></div>
+          <div className="stat-tile"><b>{stats.aidants}</b><span>aidant{stats.aidants > 1 ? 's' : ''} à leur porte</span></div>
+        </div>
+      )}
+
+      {!guideHidden && !(ready && mine.length > 0) && (
+        <section className="card col" style={{ gap: 14 }}>
+          <div className="row between">
+            <div>
+              <h2 className="section-title">Pour bien démarrer</h2>
+              <p className="muted small">Trois gestes, deux minutes.</p>
+            </div>
+            <button type="button" className="btn btn-icon" aria-label="Masquer le guide" onClick={hideGuide}><X size={16} /></button>
+          </div>
+          <ol className="guide">
+            {steps.map((s, i) => (
+              <li key={s.title} className={s.done ? 'done' : ''}>
+                <span className="n">{s.done ? <Check size={14} /> : i + 1}</span>
+                <div className="grow">
+                  <strong>{s.title}</strong>
+                  <div className="small muted">{s.text}</div>
+                </div>
+                {!s.done && <button type="button" className="btn btn-soft btn-sm" onClick={() => go(s.go)}>{s.action}</button>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {mine.length > 0 && (
         <section>

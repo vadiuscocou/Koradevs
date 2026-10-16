@@ -1747,6 +1747,92 @@ svg {
   gap: 8px;
 }
 
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-tile {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.stat-tile b {
+  display: block;
+  font-size: 1.8rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.stat-tile span {
+  font-size: 0.8rem;
+  color: var(--mute);
+}
+
+.guide {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.guide li.done {
+  opacity: 0.6;
+}
+
+.guide .n {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.guide li.done .n {
+  background: var(--accent);
+}
+
+@media (max-width: 520px) {
+  .grid-3 {
+    gap: 8px;
+  }
+  .stat-tile {
+    padding: 12px;
+  }
+  .stat-tile b {
+    font-size: 1.4rem;
+  }
+  .guide li {
+    flex-wrap: wrap;
+  }
+  .guide li .grow {
+    flex: 1 1 calc(100% - 50px);
+  }
+  .guide li .btn {
+    margin-left: 38px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
