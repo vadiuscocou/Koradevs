@@ -11,7 +11,7 @@ Projet CADEV 2026. Le concept complet est dans [`docs/sos-dev-concept-v2.pdf`](d
 | `shared/` | Code commun : masquage des secrets, lecture des traces d'erreur, détection de la techno, format de la demande (Zod) | Étape 1 |
 | `cli/` | La commande `sos` : lance ton programme, capture l'erreur, masque les secrets, affiche l'aperçu, puis fait le pont avec la salle SOS | Étapes 1 et 4 |
 | `server/` | API NestJS + PostgreSQL : connexion GitHub, demandes, fiches, Radar et salle SOS temps réel (WebSocket `/ws`) | Étapes 2 à 4 |
-| `web/` | Interface web (Vite + React) : le Radar des aidants et la salle SOS (CodeMirror + Yjs) | Étapes 3 et 4 |
+| `web/` | Interface web (Vite + React) : Accueil, demande d'aide en 3 étapes, Radar, salle SOS (CodeMirror + Yjs), Fiches, Projets, Passeport public. Thème clair/sombre, mobile et ordinateur | Étapes 3 et 4 |
 | `examples/demo/` | Petit programme qui plante, avec de faux secrets, pour la démo | |
 | `scripts/audit-licenses.mjs` | Audit des licences (règlement, article 6) | |
 
@@ -96,6 +96,11 @@ Le mode démo (`sos login --dev <pseudo>`) est actif par défaut hors production
 | `GET /requests` · `GET /requests/:id` | Mes demandes (le code n'est visible que par son auteur) |
 | `POST /requests/:id/close` | Annuler ma demande |
 | `GET /solutions/search?q=…&tech=…` | Chercher des fiches (public) |
+| `GET/PUT /community/profile` · `GET /community/neighbors` | Maison : ville, pays, technos, porte ouverte/fermée ; voisins réels à leur porte |
+| `POST /community/neighbors/ring/:login` | Sonnette : notification temps réel, seulement si la porte est ouverte et la personne connectée |
+| `GET /community/passport/:login` · `GET /community/confirmed` | Passeport public (preuves + empreinte SHA-256 recalculable) · fiches confirmées par un test |
+| `GET/POST /community/projects` · `…/join` · `…/requests/:login` · `…/tasks` | Vitrine de projets, demande pour rejoindre (l'auteur décide), tableau de tâches réservé aux membres |
+| `POST /community/report` | Signaler une fiche ou un projet |
 | WebSocket `/ws` | Radar : `auth`, `disponible`, `pause`, `accepter` (aidant) · `suivre` (demandeur) |
 | WebSocket `/ws` | Salle SOS : `rejoindre`, `yjs`, `message`, `resolu` · `proposer`, `relance` (aidant) · `terminal`, `execution`, `reponse`, `reponse-relance` (terminal du demandeur) |
 

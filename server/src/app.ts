@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Module, type DynamicModule, type LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -55,6 +57,19 @@ export async function createApp(deps: AppDeps, logger: LogLevel[] | false = ['er
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(deps), { bodyParser: false, logger });
   // A request holds up to 200 KB of files, JSON-escaped.
   app.useBodyParser('json', { limit: '1mb' });
+  if (deps.config.serveWeb) serveWeb(app);
   app.enableShutdownHooks();
   return app;
+}
+
+const WEB_DIR = fileURLToPath(new URL('../../web/dist/', import.meta.url));
+
+/** One address for everything: the built web app at `/`, the API under `/api` (like the Vite dev proxy). */
+function serveWeb(app: NestExpressApplication): void {
+  if (!fs.existsSync(WEB_DIR)) throw new Error(`SOS_SERVE_WEB=1 mais ${WEB_DIR} n’existe pas : lance « npm run build » d’abord.`);
+  app.use((req: { url: string }, _res: unknown, next: () => void) => {
+    if (req.url === '/api' || req.url.startsWith('/api/') || req.url.startsWith('/api?')) req.url = req.url.slice(4) || '/';
+    next();
+  });
+  app.useStaticAssets(WEB_DIR);
 }

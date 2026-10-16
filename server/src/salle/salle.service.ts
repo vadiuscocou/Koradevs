@@ -16,6 +16,7 @@ import { publicUser } from '../auth/auth.service.js';
 import type { AppConfig } from '../config.js';
 import type { Store, StoredRequest, User } from '../store/types.js';
 import { CLOCK, CONFIG, STORE, type Clock } from '../tokens.js';
+import { CommunityService } from '../community/community.service.js';
 
 /** What the Salle needs from a WebSocket connection. */
 export interface SalleConnection {
@@ -48,6 +49,8 @@ interface Room {
   ficheDraft?: { error: string; cause: string; fix: string };
   ficheValidatedRequester: boolean;
   ficheValidatedHelper: boolean;
+  /** The requester says their program is green again (or the terminal saw exit code 0). */
+  testOk: boolean;
 }
 
 const MAX_CHAT = 500;
@@ -73,6 +76,7 @@ export class SalleService {
     @Inject(STORE) private readonly store: Store,
     @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(CLOCK) private readonly now: Clock,
+    @Inject(CommunityService) private readonly community: CommunityService,
   ) {}
 
   async join(conn: SalleConnection, requestId: string, client: SalleClient): Promise<void> {
@@ -149,7 +153,10 @@ export class SalleService {
         return this.broadcast(room, { type: 'fiche-proposee', requestId: room.requestId, by: login, error, cause, fix }, member);
       }
       case 'valider-fiche': {
-        if (member.role === 'demandeur') room.ficheValidatedRequester = true;
+        if (member.role === 'demandeur') {
+          room.ficheValidatedRequester = true;
+          if (message.testOk === true) room.testOk = true;
+        }
         if (member.role === 'aidant') room.ficheValidatedHelper = true;
         
         // If the message brings new content, update it
@@ -159,14 +166,14 @@ export class SalleService {
         }
 
         if (room.ficheValidatedRequester && room.ficheValidatedHelper && room.ficheDraft) {
-          this.store.seedSolutions([{
-            id: randomUUID(),
-            title: room.errorSummary || 'Problème résolu',
-            error: room.ficheDraft.error,
-            cause: room.ficheDraft.cause,
-            fix: room.ficheDraft.fix,
-            tech: room.tech,
-          }]).catch(e => this.logger.error('Failed to save fiche:', e));
+          const solutionId = randomUUID();
+          const title = room.errorSummary || 'Problème résolu';
+          void this.store
+            .seedSolutions([{ id: solutionId, title, error: room.ficheDraft.error, cause: room.ficheDraft.cause, fix: room.ficheDraft.fix, tech: room.tech }])
+            .then(() =>
+              this.community.recordProof({ helper: room.helper.login, solutionId, title, tech: room.tech, testPassed: room.testOk || room.lastExitCode === 0 }),
+            )
+            .catch((e: unknown) => this.logger.error('Failed to save fiche:', e));
           this.resolve(conn, room.requestId);
         } else {
           // Tell the other one it was validated
@@ -233,6 +240,7 @@ export class SalleService {
       nextMessageId: 1,
       ficheValidatedRequester: false,
       ficheValidatedHelper: false,
+      testOk: false,
     };
     this.rooms.set(request.id, room);
     return room;

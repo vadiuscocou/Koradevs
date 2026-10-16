@@ -26,6 +26,21 @@ const ClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('execution'), requestId: z.string().uuid(), state: z.enum(['en-cours', 'terminee']), exitCode: z.number().int().optional() }),
   z.object({ type: z.literal('reponse'), requestId: z.string().uuid(), path: z.string().min(1).max(500), accepted: z.boolean(), reason: z.string().max(300).optional() }),
   z.object({ type: z.literal('reponse-relance'), requestId: z.string().uuid(), accepted: z.boolean() }),
+  z.object({
+    type: z.literal('proposer-fiche'),
+    requestId: z.string().uuid(),
+    error: z.string().trim().min(1).max(500),
+    cause: z.string().trim().min(1).max(1500),
+    fix: z.string().trim().min(1).max(3000),
+  }),
+  z.object({
+    type: z.literal('valider-fiche'),
+    requestId: z.string().uuid(),
+    error: z.string().trim().min(1).max(500).optional(),
+    cause: z.string().trim().min(1).max(1500).optional(),
+    fix: z.string().trim().min(1).max(3000).optional(),
+    testOk: z.boolean().optional(),
+  }),
 ]);
 
 interface Connection extends SalleConnection {
@@ -268,6 +283,18 @@ export class RadarService implements OnApplicationBootstrap, BeforeApplicationSh
     }
     this.lastStatus.delete(requestId);
     this.logger.log(`${helper.login} a pris la demande ${requestId.slice(0, 8)} de ${requester?.login}`);
+  }
+
+  /** The doorbell. Returns true if the neighbour is connected and received it. */
+  ring(login: string, from: string): boolean {
+    let delivered = false;
+    for (const c of this.connections) {
+      if (c.user && c.user.login.toLowerCase() === login.toLowerCase()) {
+        this.send(c, { type: 'sonnette', from });
+        delivered = true;
+      }
+    }
+    return delivered;
   }
 
   private send(c: Connection, message: ServerMessage): void {

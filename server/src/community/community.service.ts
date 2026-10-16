@@ -1,22 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { createHash, randomUUID } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Store, User } from '../store/types.js';
+import { STORE } from '../tokens.js';
 
-export interface UserCommunityProfile {
+export type DoorStatus = 'ouverte' | 'fermee';
+export type TaskStatus = 'a_faire' | 'en_cours' | 'termine';
+
+/** What the user chose to tell about themselves. Everything else is computed from real activity. */
+interface ProfileDoc {
   userId: string;
   login: string;
   city: string;
   country: string;
   bio: string;
-  doorStatus: 'ouverte' | 'fermee';
+  doorStatus: DoorStatus;
+}
+
+export interface UserCommunityProfile extends ProfileDoc {
   tech: string[];
+  /** Real number of confirmed helps (one proof each). */
+  confirmedCount: number;
   points: number;
   badges: string[];
-  confirmedCount: number;
 }
 
 export interface ProjectTask {
   id: string;
   title: string;
-  status: 'a_faire' | 'en_cours' | 'termine';
+  status: TaskStatus;
   assignee?: string;
 }
 
@@ -32,6 +43,8 @@ export interface CommunityProject {
   tech: string[];
   neededRoles: string[];
   members: string[];
+  /** Logins that asked to join, waiting for the author. */
+  requests: string[];
   tasks: ProjectTask[];
   createdAt: string;
 }
@@ -46,205 +59,233 @@ export interface ReportItem {
   createdAt: string;
 }
 
+/** One confirmed help: a published sheet, signed by the helper. */
+export interface ProofDoc {
+  id: string;
+  helper: string;
+  solutionId: string;
+  title: string;
+  tech: string[];
+  /** true when the requester's program ran green in the room (exit code 0). */
+  testPassed: boolean;
+  at: string;
+}
+
+export interface Passport {
+  login: string;
+  city: string;
+  country: string;
+  tech: string[];
+  confirmedCount: number;
+  proofs: ProofDoc[];
+  /** SHA-256 of the canonical JSON of login, city, country, tech, confirmedCount and proofs. Anyone can recompute it. */
+  hash: string;
+}
+
+const POINTS_PER_PROOF = 3;
+
+const cleanList = (value: unknown, max: number): string[] =>
+  Array.isArray(value) ? [...new Set(value.map((v) => String(v).trim()).filter(Boolean))].slice(0, max) : [];
+
+const cleanUrl = (value: unknown): string | undefined => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return /^https?:\/\/\S{3,300}$/i.test(text) ? text : undefined;
+};
+
 @Injectable()
 export class CommunityService {
-  private readonly profiles = new Map<string, UserCommunityProfile>();
-  private readonly countryPoints = new Map<string, number>([
-    ['Bénin', 28],
-    ['Sénégal', 24],
-    ["Côte d'Ivoire", 19],
-    ['Togo', 14],
-    ['Cameroun', 11],
-    ['Mali', 7],
-    ['Guinée', 5],
-  ]);
+  constructor(@Inject(STORE) private readonly store: Store) {}
 
-  private readonly projects: CommunityProject[] = [
-    {
-      id: 'proj-1',
-      title: 'AfriCode Hub',
-      description: 'Plateforme open-source pour connecter les écoles tech d’Afrique de l’Ouest et partager des défis de code.',
-      author: 'awa',
-      country: 'Sénégal',
-      city: 'Dakar',
-      repoUrl: 'https://github.com/koradevs/africode-hub',
-      demoUrl: 'https://africode-demo.org',
-      tech: ['React', 'TypeScript', 'Node.js'],
-      neededRoles: ['Dev Frontend React', 'UI/UX Designer', 'Dev Backend Node.js'],
-      members: ['awa', 'moussa'],
-      tasks: [
-        { id: 't-1', title: 'Intégrer l’API d’authentification GitHub', status: 'termine', assignee: 'awa' },
-        { id: 't-2', title: 'Créer la page vitrine des écoles partenaires', status: 'en_cours', assignee: 'moussa' },
-        { id: 't-3', title: 'Ajouter les tests de montée en charge', status: 'a_faire' },
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
-      id: 'proj-2',
-      title: 'KoraPay Mobile',
-      description: 'Micro-passerelle de paiement locale pour développeurs freelances sans carte internationale.',
-      author: 'koffi',
-      country: 'Bénin',
-      city: 'Cotonou',
-      repoUrl: 'https://github.com/koradevs/korapay-lib',
-      tech: ['Flutter', 'Python', 'Docker'],
-      neededRoles: ['Dev Mobile Flutter', 'Expert Sécurité'],
-      members: ['koffi'],
-      tasks: [
-        { id: 't-4', title: 'Spécification de l’API REST de webhook', status: 'termine', assignee: 'koffi' },
-        { id: 't-5', title: 'Chiffrement des clés d’API privées', status: 'en_cours', assignee: 'koffi' },
-        { id: 't-6', title: 'Application mobile de test pour commerçants', status: 'a_faire' },
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    },
-  ];
-
-  private readonly reports: ReportItem[] = [];
-
-  constructor() {
-    // Seed initial demo neighbors for Quartier
-    this.profiles.set('user-awa', {
-      userId: 'user-awa',
-      login: 'awa',
-      city: 'Dakar',
-      country: 'Sénégal',
-      bio: 'Développeuse full-stack passionnée par TypeScript et l’open-source.',
-      doorStatus: 'ouverte',
-      tech: ['TypeScript', 'React', 'Node.js'],
-      points: 45,
-      badges: ['Confirmé', 'Premier Secours', 'Mentor'],
-      confirmedCount: 9,
-    });
-    this.profiles.set('user-koffi', {
-      userId: 'user-koffi',
-      login: 'koffi',
-      city: 'Cotonou',
-      country: 'Bénin',
-      bio: 'Dev Python/FastAPI & Flutter. Toujours prêt à débloquer un bug async.',
-      doorStatus: 'ouverte',
-      tech: ['Python', 'Docker', 'PostgreSQL'],
-      points: 38,
-      badges: ['Confirmé', 'Expert Python'],
-      confirmedCount: 7,
-    });
-    this.profiles.set('user-fatou', {
-      userId: 'user-fatou',
-      login: 'fatou',
-      city: 'Abidjan',
-      country: "Côte d'Ivoire",
-      bio: 'Ingénieure DevOps et Rust. Porte ouverte le soir pour du live coding.',
-      doorStatus: 'ouverte',
-      tech: ['Rust', 'Docker', 'TypeScript'],
-      points: 25,
-      badges: ['Confirmé', 'As du Debug'],
-      confirmedCount: 5,
-    });
+  private async proofsOf(login: string): Promise<ProofDoc[]> {
+    return (await this.store.listDocs<ProofDoc>('proof', 1000)).filter((p) => p.helper.toLowerCase() === login.toLowerCase());
   }
 
-  getProfile(userId: string, login: string): UserCommunityProfile {
-    let prof = this.profiles.get(userId);
-    if (!prof) {
-      prof = {
-        userId,
-        login,
-        city: 'Cotonou',
-        country: 'Bénin',
-        bio: 'Développeur passionné sur KoraDevs.',
-        doorStatus: 'ouverte',
-        tech: ['TypeScript', 'React'],
-        points: 15,
-        badges: ['Confirmé', 'Voisin Bienveillant'],
-        confirmedCount: 3,
-      };
-      this.profiles.set(userId, prof);
+  private async toProfile(doc: ProfileDoc): Promise<UserCommunityProfile> {
+    const [tech, proofs] = await Promise.all([this.store.getHelperTech(doc.userId), this.proofsOf(doc.login)]);
+    const confirmedCount = proofs.length;
+    return {
+      ...doc,
+      tech,
+      confirmedCount,
+      points: confirmedCount * POINTS_PER_PROOF,
+      badges: confirmedCount > 0 ? ['Confirmé'] : [],
+    };
+  }
+
+  private async docFor(user: Pick<User, 'id' | 'login'>): Promise<ProfileDoc> {
+    return (
+      (await this.store.getDoc<ProfileDoc>('profile', user.id)) ?? {
+        userId: user.id,
+        login: user.login,
+        city: '',
+        country: '',
+        bio: '',
+        doorStatus: 'fermee',
+      }
+    );
+  }
+
+  async getProfile(user: User): Promise<UserCommunityProfile> {
+    return this.toProfile(await this.docFor(user));
+  }
+
+  async updateProfile(
+    user: User,
+    updates: { city?: unknown; country?: unknown; bio?: unknown; doorStatus?: unknown; tech?: unknown },
+  ): Promise<UserCommunityProfile> {
+    const doc = await this.docFor(user);
+    if (typeof updates.city === 'string') doc.city = updates.city.trim().slice(0, 60);
+    if (typeof updates.country === 'string') doc.country = updates.country.trim().slice(0, 60);
+    if (typeof updates.bio === 'string') doc.bio = updates.bio.trim().slice(0, 280);
+    if (updates.doorStatus === 'ouverte' || updates.doorStatus === 'fermee') doc.doorStatus = updates.doorStatus;
+    doc.login = user.login;
+    await this.store.putDoc('profile', user.id, doc);
+    if (updates.tech !== undefined) await this.store.setHelperTech(user.id, cleanList(updates.tech, 20));
+    return this.toProfile(doc);
+  }
+
+  /** Real people with an open door and at least one technology. Nobody is invented. */
+  async getNeighbors(user: User): Promise<UserCommunityProfile[]> {
+    const ids = (await this.store.listHelperIds()).filter((id) => id !== user.id);
+    const profiles: UserCommunityProfile[] = [];
+    for (const id of ids) {
+      const doc = await this.store.getDoc<ProfileDoc>('profile', id);
+      if (doc?.doorStatus === 'ouverte') profiles.push(await this.toProfile(doc));
     }
-    return prof;
+    return profiles.sort((a, b) => b.confirmedCount - a.confirmedCount);
   }
 
-  updateProfile(userId: string, login: string, updates: Partial<UserCommunityProfile>): UserCommunityProfile {
-    const prof = this.getProfile(userId, login);
-    Object.assign(prof, updates);
-    this.profiles.set(userId, prof);
-    return prof;
+  async isDoorOpen(login: string): Promise<boolean> {
+    const user = await this.store.findUserByLogin(login);
+    if (!user) return false;
+    return (await this.docFor(user)).doorStatus === 'ouverte';
   }
 
-  getNeighbors(currentLogin: string): UserCommunityProfile[] {
-    return [...this.profiles.values()].filter((p) => p.login !== currentLogin);
+  // --- Passeport -----------------------------------------------------------
+
+  async recordProof(proof: Omit<ProofDoc, 'id' | 'at'>): Promise<ProofDoc> {
+    const doc: ProofDoc = { ...proof, id: randomUUID(), at: new Date().toISOString() };
+    await this.store.putDoc('proof', doc.id, doc);
+    return doc;
   }
 
-  getCountryStats(): Array<{ country: string; points: number }> {
-    return [...this.countryPoints.entries()]
-      .map(([country, points]) => ({ country, points }))
-      .sort((a, b) => b.points - a.points);
+  async getPassport(login: string): Promise<Passport | null> {
+    const user = await this.store.findUserByLogin(login);
+    if (!user) return null;
+    const profile = await this.getProfile(user);
+    const proofs = (await this.proofsOf(user.login)).sort((a, b) => b.at.localeCompare(a.at));
+    const body = {
+      login: user.login,
+      city: profile.city,
+      country: profile.country,
+      tech: profile.tech,
+      confirmedCount: proofs.length,
+      proofs,
+    };
+    return { ...body, hash: passportHash(body) };
   }
 
-  addCountryPoints(country: string, amount = 3): void {
-    const cur = this.countryPoints.get(country) ?? 0;
-    this.countryPoints.set(country, cur + amount);
+  /** Ids of the sheets whose test ran green: only these get the « Confirmé » badge. */
+  async confirmedSolutionIds(): Promise<string[]> {
+    return (await this.store.listDocs<ProofDoc>('proof', 1000)).filter((p) => p.testPassed).map((p) => p.solutionId);
   }
 
-  getProjects(): CommunityProject[] {
-    return this.projects;
+  // --- Projets -------------------------------------------------------------
+
+  getProjects(): Promise<CommunityProject[]> {
+    return this.store.listDocs<CommunityProject>('project', 100);
   }
 
-  createProject(author: string, data: { title: string; description: string; tech: string[]; neededRoles: string[]; repoUrl?: string; demoUrl?: string; country?: string; city?: string }): CommunityProject {
-    const proj: CommunityProject = {
-      id: `proj-${Date.now()}`,
-      title: data.title,
-      description: data.description,
-      author,
-      country: data.country || 'Bénin',
-      city: data.city || 'Cotonou',
-      repoUrl: data.repoUrl,
-      demoUrl: data.demoUrl,
-      tech: data.tech,
-      neededRoles: data.neededRoles,
-      members: [author],
+  async createProject(
+    user: User,
+    data: { title?: unknown; description?: unknown; tech?: unknown; neededRoles?: unknown; repoUrl?: unknown; demoUrl?: unknown },
+  ): Promise<CommunityProject | null> {
+    const title = typeof data.title === 'string' ? data.title.trim().slice(0, 80) : '';
+    const description = typeof data.description === 'string' ? data.description.trim().slice(0, 600) : '';
+    if (title.length < 3 || description.length < 10) return null;
+    const profile = await this.docFor(user);
+    const project: CommunityProject = {
+      id: randomUUID(),
+      title,
+      description,
+      author: user.login,
+      country: profile.country,
+      city: profile.city,
+      repoUrl: cleanUrl(data.repoUrl),
+      demoUrl: cleanUrl(data.demoUrl),
+      tech: cleanList(data.tech, 8),
+      neededRoles: cleanList(data.neededRoles, 6),
+      members: [user.login],
+      requests: [],
       tasks: [],
       createdAt: new Date().toISOString(),
     };
-    this.projects.unshift(proj);
-    return proj;
+    await this.store.putDoc('project', project.id, project);
+    return project;
   }
 
-  joinProject(projectId: string, login: string): boolean {
-    const proj = this.projects.find((p) => p.id === projectId);
-    if (!proj) return false;
-    if (!proj.members.includes(login)) {
-      proj.members.push(login);
-    }
+  /** « Demander à rejoindre » : the author decides. */
+  async requestToJoin(projectId: string, login: string): Promise<'ok' | 'inconnu' | 'deja-membre'> {
+    const project = await this.store.getDoc<CommunityProject>('project', projectId);
+    if (!project) return 'inconnu';
+    if (project.members.includes(login)) return 'deja-membre';
+    if (!project.requests.includes(login)) project.requests.push(login);
+    await this.store.putDoc('project', projectId, project);
+    return 'ok';
+  }
+
+  async answerJoin(projectId: string, author: string, login: string, accept: boolean): Promise<boolean> {
+    const project = await this.store.getDoc<CommunityProject>('project', projectId);
+    if (!project || project.author !== author) return false;
+    project.requests = project.requests.filter((l) => l !== login);
+    if (accept && !project.members.includes(login)) project.members.push(login);
+    await this.store.putDoc('project', projectId, project);
     return true;
   }
 
-  addTask(projectId: string, title: string, assignee?: string): ProjectTask | null {
-    const proj = this.projects.find((p) => p.id === projectId);
-    if (!proj) return null;
+  async addTask(projectId: string, login: string, title: string, assignee?: string): Promise<ProjectTask | null> {
+    const project = await this.store.getDoc<CommunityProject>('project', projectId);
+    const clean = title.trim().slice(0, 120);
+    if (!project || !project.members.includes(login) || !clean) return null;
     const task: ProjectTask = {
-      id: `task-${Date.now()}`,
-      title,
+      id: randomUUID(),
+      title: clean,
       status: 'a_faire',
-      assignee,
+      assignee: assignee && project.members.includes(assignee) ? assignee : undefined,
     };
-    proj.tasks.push(task);
+    project.tasks.push(task);
+    await this.store.putDoc('project', projectId, project);
     return task;
   }
 
-  updateTaskStatus(projectId: string, taskId: string, status: 'a_faire' | 'en_cours' | 'termine'): boolean {
-    const proj = this.projects.find((p) => p.id === projectId);
-    if (!proj) return false;
-    const task = proj.tasks.find((t) => t.id === taskId);
-    if (!task) return false;
+  async updateTaskStatus(projectId: string, login: string, taskId: string, status: TaskStatus): Promise<boolean> {
+    const project = await this.store.getDoc<CommunityProject>('project', projectId);
+    const task = project?.tasks.find((t) => t.id === taskId);
+    if (!project || !task || !project.members.includes(login)) return false;
     task.status = status;
+    await this.store.putDoc('project', projectId, project);
     return true;
   }
 
-  report(item: Omit<ReportItem, 'id' | 'createdAt'>): ReportItem {
-    const rep: ReportItem = {
-      id: `rep-${Date.now()}`,
-      ...item,
-      createdAt: new Date().toISOString(),
-    };
-    this.reports.push(rep);
-    return rep;
+  // --- Signalements --------------------------------------------------------
+
+  async report(item: Omit<ReportItem, 'id' | 'createdAt'>): Promise<ReportItem> {
+    const report: ReportItem = { ...item, id: randomUUID(), createdAt: new Date().toISOString() };
+    await this.store.putDoc('report', report.id, report);
+    return report;
   }
 }
+
+/** Canonical JSON (sorted keys) so that anyone can recompute the hash from the public passport. */
+export function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export const passportHash = (body: unknown): string => createHash('sha256').update(canonical(body)).digest('hex');

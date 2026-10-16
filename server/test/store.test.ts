@@ -91,6 +91,29 @@ function contract(name: string, setup: () => Promise<Store>) {
       expect(found.map((s) => s.title)).toEqual([expect.stringContaining('EADDRINUSE')]);
       expect(await store.findSolutionCandidates(['introuvablexyz'], 20)).toEqual([]);
     });
+
+    it('keeps community documents, finds users by login and lists helpers', async () => {
+      const awa = await store.upsertUser({ provider: 'dev', providerId: 'awa', login: 'Awa', name: null, avatarUrl: null });
+      expect((await store.findUserByLogin('awa'))?.id).toBe(awa.id);
+      expect(await store.findUserByLogin('personne')).toBeNull();
+
+      expect(await store.listHelperIds()).toEqual([]);
+      await store.setHelperTech(awa.id, []);
+      expect(await store.listHelperIds()).toEqual([]);
+      await store.setHelperTech(awa.id, ['React']);
+      expect(await store.listHelperIds()).toEqual([awa.id]);
+
+      expect(await store.getDoc('project', 'p1')).toBeNull();
+      await store.putDoc('project', 'p1', { title: 'un', members: ['awa'] });
+      await store.putDoc('project', 'p2', { title: 'deux', members: [] });
+      await store.putDoc('project', 'p1', { title: 'un bis', members: ['awa', 'koffi'] });
+      await store.putDoc('proof', 'x', { helper: 'awa' });
+      expect(await store.getDoc('project', 'p1')).toEqual({ title: 'un bis', members: ['awa', 'koffi'] });
+      const projects = await store.listDocs<{ title: string }>('project');
+      expect(projects.map((p) => p.title).sort()).toEqual(['deux', 'un bis']);
+      expect(await store.listDocs('proof')).toEqual([{ helper: 'awa' }]);
+      expect(await store.listDocs('project', 1)).toHaveLength(1);
+    });
   });
 }
 
@@ -103,7 +126,7 @@ describe.skipIf(!url)('PostgreSQL', () => {
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: url });
     await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-    expect(await migrate(pool)).toEqual(['001_init.sql', '002_radar_fiches.sql', '003_salle.sql']);
+    expect(await migrate(pool)).toEqual(['001_init.sql', '002_radar_fiches.sql', '003_salle.sql', '004_community.sql']);
     expect(await migrate(pool)).toEqual([]);
   });
   afterAll(async () => {
@@ -111,7 +134,7 @@ describe.skipIf(!url)('PostgreSQL', () => {
   });
 
   contract('PgStore', async () => {
-    await pool.query('TRUNCATE requests, sessions, helper_profiles, solutions, users CASCADE');
+    await pool.query('TRUNCATE requests, sessions, helper_profiles, solutions, community_docs, users CASCADE');
     return new PgStore(pool);
   });
 });

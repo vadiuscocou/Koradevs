@@ -55,6 +55,8 @@ export interface PurgeResult {
   sessions: number;
 }
 
+export type DocKind = 'profile' | 'project' | 'report' | 'proof';
+
 export interface Store {
   readonly kind: 'postgres' | 'memoire';
   upsertUser(input: UserInput): Promise<User>;
@@ -84,6 +86,14 @@ export interface Store {
   findSolutionCandidates(words: string[], limit: number): Promise<Solution[]>;
   /** Lists recent solutions */
   listSolutions(limit?: number): Promise<Solution[]>;
+  /** Community documents (profiles, projects, reports, proofs), stored as JSON. */
+  putDoc(kind: DocKind, id: string, data: unknown): Promise<void>;
+  getDoc<T>(kind: DocKind, id: string): Promise<T | null>;
+  /** Newest first. */
+  listDocs<T>(kind: DocKind, limit?: number): Promise<T[]>;
+  /** Users who have set up a helper profile (a technology list). */
+  listHelperIds(): Promise<string[]>;
+  findUserByLogin(login: string): Promise<User | null>;
   purgeExpired(now: Date): Promise<PurgeResult>;
   close(): Promise<void>;
 }

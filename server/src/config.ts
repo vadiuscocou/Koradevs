@@ -16,6 +16,10 @@ export interface AppConfig {
   radarTickMs: number;
   /** Web interface, used to link to the Salle SOS from the terminal. */
   webUrl: string;
+  /** Serves the built web interface (web/dist) and the API under /api: one single address to deploy. */
+  serveWeb: boolean;
+  /** Lets the server run on its in-memory store in production (team tests: data is lost on restart). */
+  allowMemory: boolean;
 }
 
 function numberFrom(value: string | undefined, fallback: number, min: number, max: number): number {
@@ -38,5 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     publicAfterSeconds: numberFrom(env.SOS_PUBLIC_AFTER_SECONDS, 300, 0, 86400),
     radarTickMs: numberFrom(env.SOS_RADAR_TICK_MS, 3000, 0, 60000),
     webUrl: (env.SOS_WEB_URL || 'http://localhost:5173').replace(/\/+$/, ''),
+    serveWeb: env.SOS_SERVE_WEB === '1',
+    allowMemory: env.SOS_ALLOW_MEMORY === '1',
   };
 }

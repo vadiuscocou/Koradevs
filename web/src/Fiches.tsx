@@ -1,235 +1,154 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft, BookOpen, Copy, Flag, Search, Share2 } from 'lucide-react';
 import type { SolutionHit } from '@sos/shared';
-import { getRecentSolutions, searchSolutions } from './api.js';
+import { getConfirmedIds, getRecentSolutions, searchSolutions } from './api.js';
+import type { Shared } from './App.js';
 import { SignalerModal } from './SignalerModal.js';
+import { Badge, Empty, Skeletons, copyText, shareWhatsApp, useDebounced, useToast } from './ui.js';
 
-interface FichesProps {
-  token: string;
-  initialQuery?: string;
-  selectedSolution?: SolutionHit | null;
-  onClearSelection?: () => void;
-}
-
-export function Fiches({ token, initialQuery = '', selectedSolution: propSelected, onClearSelection }: FichesProps) {
-  const [solutions, setSolutions] = useState<SolutionHit[]>([]);
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [selected, setSelected] = useState<SolutionHit | null>(propSelected || null);
-  const [reportingSolution, setReportingSolution] = useState<SolutionHit | null>(null);
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
+export function Fiches({ shared, initialQuery, initialOpen }: { shared: Shared; initialQuery: string; initialOpen: SolutionHit | null }) {
+  const toast = useToast();
+  const [query, setQuery] = useState(initialQuery);
+  const [tech, setTech] = useState('');
+  const [items, setItems] = useState<SolutionHit[] | null>(null);
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<SolutionHit | null>(initialOpen);
+  const [reporting, setReporting] = useState(false);
+  const debounced = useDebounced(query);
 
   useEffect(() => {
-    if (propSelected) {
-      setSelected(propSelected);
-    }
-  }, [propSelected]);
+    getConfirmedIds().then((ids) => setConfirmed(new Set(ids)), () => undefined);
+  }, []);
 
   useEffect(() => {
-    if (initialQuery.trim()) {
-      setSearchQuery(initialQuery);
-      searchSolutions(initialQuery).then(setSolutions).catch(() => {});
-    } else {
-      getRecentSolutions().then(setSolutions).catch(() => {});
-    }
-  }, [initialQuery]);
+    let alive = true;
+    const request = debounced.trim() ? searchSolutions(debounced.trim(), tech || undefined) : getRecentSolutions();
+    setItems(null);
+    request.then(
+      (list) => alive && setItems(tech && !debounced.trim() ? list.filter((s) => s.tech.includes(tech)) : list),
+      () => alive && setItems([]),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [debounced, tech]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      getRecentSolutions().then(setSolutions).catch(() => {});
-      return;
-    }
-    searchSolutions(searchQuery).then(setSolutions).catch(() => {});
-  };
+  const [allTech, setAllTech] = useState<string[]>([]);
+  useEffect(() => {
+    if (items && !tech) setAllTech([...new Set(items.flatMap((s) => s.tech))].slice(0, 14));
+  }, [items, tech]);
 
-  const handleShare = (sol: SolutionHit) => {
-    const text = `💡 Fiche solution KoraDevs : ${sol.title}\n\nCause : ${sol.cause}\nCorrection : ${sol.fix}\n\nConfirmé par test sur KoraDevs !`;
-    if (navigator.share) {
-      navigator.share({ title: sol.title, text }).catch(() => {});
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-    }
-    setShareNotice('Partagé ✓');
-    setTimeout(() => setShareNotice(null), 2500);
-  };
-
-  // VUE DÉTAIL D'UNE FICHE
-  if (selected) {
+  if (open) {
+    const isConfirmed = confirmed.has(open.id);
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="col" style={{ gap: 20 }}>
         <div>
-          <button
-            type="button"
-            className="link-text"
-            onClick={() => {
-              setSelected(null);
-              onClearSelection?.();
-            }}
-            style={{ fontSize: '0.95rem', marginBottom: '12px', display: 'inline-block' }}
-          >
-            ← Fiche solution
+          <button type="button" className="btn btn-text small" onClick={() => setOpen(null)}>
+            <ArrowLeft size={15} /> Toutes les fiches
           </button>
+        </div>
 
-          <h1 style={{ fontSize: '1.6rem', lineHeight: 1.25, margin: '0 0 10px 0' }}>
-            {selected.title}
-          </h1>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {selected.tech.map((t) => (
-              <span key={t} className="pill pill-sky">
-                {t}
-              </span>
+        <div>
+          <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
+            {isConfirmed ? <Badge tone="mint">Confirmé par un test</Badge> : <Badge>Fiche de départ</Badge>}
+            {open.tech.map((t) => (
+              <Badge key={t} tone="sky">{t}</Badge>
             ))}
-            <span className="pill pill-mint">
-              Confirmé par test
-            </span>
           </div>
+          <h1 style={{ fontSize: '1.7rem' }}>{open.title}</h1>
         </div>
 
-        {/* Cause */}
-        <div className="card" style={{ padding: '18px 20px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-mute)', letterSpacing: '0.04em' }}>
-            Cause
-          </span>
-          <p style={{ margin: '6px 0 0 0', color: 'var(--color-ink)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-            {selected.cause}
-          </p>
-        </div>
+        <section>
+          <div className="block-label">Erreur</div>
+          <div className="code-block error">{open.error}</div>
+        </section>
+        <section className="card">
+          <div className="block-label">Cause</div>
+          <p>{open.cause}</p>
+        </section>
+        <section className="card" style={{ borderColor: 'var(--accent)' }}>
+          <div className="block-label" style={{ color: 'var(--mint-fg)' }}>Correction</div>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{open.fix}</p>
+        </section>
 
-        {/* Correction dans un bloc de code sombre #0F1A16 */}
-        <div>
-          <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-mute)', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
-            Correction
-          </span>
-          <pre className="code-editor-box" style={{ margin: 0 }}>
-            {selected.fix}
-          </pre>
-        </div>
-
-        {/* Carte menthe : Réglé en 6 minutes... */}
-        <div
-          className="card"
-          style={{
-            backgroundColor: 'var(--color-mint-bg)',
-            color: 'var(--color-mint-fg)',
-            borderColor: 'transparent',
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2px',
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>
-            Réglé en 6 minutes avec un aidant.
-          </div>
-          <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
-            Publié avec l'accord des deux développeurs.
-          </div>
-        </div>
-
-        {/* Bouton Partager (vert profond) et lien Signaler */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginTop: '6px' }}>
+        <div className="row wrap">
           <button
             type="button"
-            className="btn-primary"
-            onClick={() => handleShare(selected)}
-            style={{ flex: 1 }}
+            className="btn btn-primary"
+            onClick={async () => {
+              const ok = await copyText(open.fix);
+              toast(ok ? 'ok' : 'error', ok ? 'Correction copiée' : 'Copie impossible');
+            }}
           >
-            {shareNotice || 'Partager'}
+            <Copy size={16} /> Copier la correction
           </button>
-
-          <button
-            type="button"
-            className="link-text"
-            onClick={() => setReportingSolution(selected)}
-            style={{ fontSize: '0.9rem', color: 'var(--color-mute)' }}
-          >
-            Signaler
+          <button type="button" className="btn btn-soft" onClick={() => shareWhatsApp(`Fiche KoraDevs : ${open.title}\n\nCause : ${open.cause}\nCorrection : ${open.fix}`)}>
+            <Share2 size={16} /> Partager
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setReporting(true)}>
+            <Flag size={16} /> Signaler
           </button>
         </div>
 
-        {reportingSolution && (
-          <SignalerModal
-            token={token}
-            targetType="fiche"
-            targetId={reportingSolution.id}
-            targetTitle={reportingSolution.title}
-            onClose={() => setReportingSolution(null)}
-          />
-        )}
+        <div className="card tint-mint tight row">
+          <span className="grow small">Ça ne règle pas ton problème ?</span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => shared.go('#/demander')}>Demander de l’aide</button>
+        </div>
+
+        {reporting && <SignalerModal token={shared.token} targetType="fiche" targetId={open.id} onClose={() => setReporting(false)} />}
       </div>
     );
   }
 
-  // VUE LISTE DES FICHES
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h1 style={{ fontSize: '1.6rem', margin: '0 0 14px 0' }}>
-          Fiches solutions
-        </h1>
-
-        <form onSubmit={handleSearch}>
-          <input
-            type="text"
-            className="input-box"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher une erreur, un bug, une techno…"
-            style={{ height: '48px' }}
-          />
-        </form>
+    <div className="col" style={{ gap: 20 }}>
+      <div className="page-head" style={{ margin: 0 }}>
+        <h1>Fiches solutions</h1>
+        <p>Chaque aide résolue devient un savoir partagé. Cherche avant de demander.</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {solutions.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-            <p style={{ margin: 0, color: 'var(--color-mute)' }}>
-              Aucune fiche trouvée pour cette recherche.
-            </p>
-          </div>
-        ) : (
-          solutions.map((sol) => (
-            <div
-              key={sol.id}
-              className="card"
-              onClick={() => setSelected(sol)}
-              style={{
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 20px',
-              }}
-            >
-              <div>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', display: 'block', marginBottom: '4px' }}>
-                  {sol.title}
-                </span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {sol.tech.slice(0, 2).map((t) => (
-                    <span key={t} className="pill pill-sky" style={{ padding: '2px 8px', fontSize: '11px' }}>
-                      {t}
-                    </span>
+      <div className="search">
+        <Search size={19} />
+        <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Colle une erreur ou tape un mot-clé…" aria-label="Rechercher une fiche" autoFocus />
+      </div>
+
+      {allTech.length > 0 && (
+        <div className="chips" role="group" aria-label="Filtrer par technologie">
+          <button type="button" className={`chip ${tech === '' ? 'on' : ''}`} onClick={() => setTech('')}>Toutes</button>
+          {allTech.map((t) => (
+            <button key={t} type="button" className={`chip ${tech === t ? 'on' : ''}`} onClick={() => setTech(tech === t ? '' : t)}>{t}</button>
+          ))}
+        </div>
+      )}
+
+      {items === null ? (
+        <Skeletons count={4} />
+      ) : items.length === 0 ? (
+        <Empty icon={<BookOpen size={28} />} title={debounced.trim() ? 'Aucune fiche ne correspond' : 'La bibliothèque est vide'}>
+          {debounced.trim() ? 'Demande de l’aide : la solution deviendra une fiche pour les suivants.' : 'Chaque aide résolue ajoutera une fiche ici.'}
+          {debounced.trim() && (
+            <div style={{ marginTop: 10 }}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => shared.go('#/demander')}>Demander de l’aide</button>
+            </div>
+          )}
+        </Empty>
+      ) : (
+        <div className="col">
+          {items.map((s) => (
+            <button key={s.id} type="button" className="card interactive fiche-row" style={{ textAlign: 'left', width: '100%', font: 'inherit', color: 'inherit' }} onClick={() => setOpen(s)}>
+              <div className="grow">
+                <h3>{s.title}</h3>
+                <div className="error-line" style={{ marginBottom: 8 }}>{s.error}</div>
+                <div className="row wrap" style={{ gap: 6 }}>
+                  {s.tech.slice(0, 4).map((t) => (
+                    <Badge key={t} tone="sky">{t}</Badge>
                   ))}
                 </div>
               </div>
-
-              <span className="pill pill-mint">
-                Confirmé par test
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-
-      {reportingSolution && (
-        <SignalerModal
-          token={token}
-          targetType="fiche"
-          targetId={reportingSolution.id}
-          targetTitle={reportingSolution.title}
-          onClose={() => setReportingSolution(null)}
-        />
+              {confirmed.has(s.id) && <Badge tone="mint">Confirmé</Badge>}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

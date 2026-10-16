@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { SosRequest } from '@sos/shared';
-import type { NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, Store, StoredRequest, User, UserInput } from './types.js';
+import type { DocKind, NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, Store, StoredRequest, User, UserInput } from './types.js';
 
 interface UserRow {
   id: string;
@@ -236,6 +236,33 @@ export class PgStore implements Store {
       [limit],
     );
     return rows.map(toSolution);
+  }
+
+  async putDoc(kind: DocKind, id: string, data: unknown): Promise<void> {
+    await this.pool.query(
+      'INSERT INTO community_docs (kind, id, data) VALUES ($1, $2, $3) ON CONFLICT (kind, id) DO UPDATE SET data = EXCLUDED.data',
+      [kind, id, JSON.stringify(data)],
+    );
+  }
+
+  async getDoc<T>(kind: DocKind, id: string): Promise<T | null> {
+    const { rows } = await this.pool.query<{ data: T }>('SELECT data FROM community_docs WHERE kind = $1 AND id = $2', [kind, id]);
+    return rows[0]?.data ?? null;
+  }
+
+  async listDocs<T>(kind: DocKind, limit = 200): Promise<T[]> {
+    const { rows } = await this.pool.query<{ data: T }>('SELECT data FROM community_docs WHERE kind = $1 ORDER BY created_at DESC LIMIT $2', [kind, limit]);
+    return rows.map((r) => r.data);
+  }
+
+  async listHelperIds(): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>('SELECT user_id FROM helper_profiles WHERE cardinality(tech) > 0');
+    return rows.map((r) => r.user_id);
+  }
+
+  async findUserByLogin(login: string): Promise<User | null> {
+    const { rows } = await this.pool.query<UserRow>('SELECT * FROM users WHERE lower(login) = lower($1) ORDER BY created_at LIMIT 1', [login]);
+    return rows[0] ? toUser(rows[0]) : null;
   }
 
   async purgeExpired(now: Date): Promise<PurgeResult> {

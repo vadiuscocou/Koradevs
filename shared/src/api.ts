@@ -91,7 +91,7 @@ export type ClientMessage =
   | { type: 'reponse'; requestId: string; path: string; accepted: boolean; reason?: string }
   | { type: 'reponse-relance'; requestId: string; accepted: boolean }
   | { type: 'proposer-fiche'; requestId: string; error: string; cause: string; fix: string }
-  | { type: 'valider-fiche'; requestId: string; error?: string; cause?: string; fix?: string };
+  | { type: 'valider-fiche'; requestId: string; error?: string; cause?: string; fix?: string; testOk?: boolean };
 
 export type ServerMessage =
   | { type: 'bienvenue'; user: PublicUser }
@@ -112,7 +112,8 @@ export type ServerMessage =
   | { type: 'relance-demandee'; requestId: string; by: string }
   | { type: 'salle-fermee'; requestId: string; raison: 'resolue' | 'annulee' | 'expiree'; by?: string }
   | { type: 'fiche-proposee'; requestId: string; by: string; error: string; cause: string; fix: string }
-  | { type: 'fiche-validee'; requestId: string; by: string };
+  | { type: 'fiche-validee'; requestId: string; by: string }
+  | { type: 'sonnette'; from: string };
 
 /** `terminal` = the `sos` command on the requester's machine; `web` = the browser. */
 export type SalleClient = 'terminal' | 'web';

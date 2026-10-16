@@ -1,91 +1,65 @@
 import { useState } from 'react';
 import { sendReport } from './api.js';
+import { Modal, Spinner, useToast } from './ui.js';
 
-interface SignalerModalProps {
+const REASONS = [
+  { value: 'pas_clair', label: 'Pas clair', hint: 'Difficile à comprendre ou incomplet' },
+  { value: 'doublon', label: 'Doublon', hint: 'Existe déjà ailleurs' },
+  { value: 'inapproprie', label: 'Inapproprié', hint: 'Contenu déplacé ou dangereux' },
+] as const;
+
+export function SignalerModal({
+  token,
+  targetType,
+  targetId,
+  onClose,
+}: {
   token: string;
   targetType: 'fiche' | 'projet' | 'utilisateur';
   targetId: string;
-  targetTitle: string;
   onClose: () => void;
-}
-
-export function SignalerModal({ token, targetType, targetId, targetTitle, onClose }: SignalerModalProps) {
-  const [reason, setReason] = useState<'pas_clair' | 'doublon' | 'inapproprie'>('pas_clair');
+}) {
+  const toast = useToast();
+  const [reason, setReason] = useState<(typeof REASONS)[number]['value']>('pas_clair');
   const [details, setDetails] = useState('');
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true);
     try {
-      await sendReport(token, {
-        targetType,
-        targetId,
-        reason,
-        details,
-      });
-      setSent(true);
-      setTimeout(onClose, 1800);
+      const result = await sendReport(token, { targetType, targetId, reason, details: details.trim() || undefined });
+      toast('ok', result.message);
+      onClose();
     } catch (err) {
-      setError((err as Error).message);
+      toast('error', (err as Error).message);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ fontSize: '1.2rem', marginBottom: '6px' }}>
-          Signaler {targetType === 'fiche' ? 'une fiche' : targetType === 'projet' ? 'un projet' : 'un utilisateur'}
-        </h2>
-        <p className="text-mute" style={{ fontSize: '0.85rem', margin: '0 0 16px 0' }}>
-          Élément : <span style={{ color: 'var(--ink)' }}>{targetTitle}</span>
-        </p>
-
-        {sent ? (
-          <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--accent)' }}>
-            ✓ Signalement transmis à l'équipe.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-              Motif du signalement
-              <select
-                className="input-field"
-                value={reason}
-                onChange={(e) => setReason(e.target.value as 'pas_clair' | 'doublon' | 'inapproprie')}
-                style={{ marginTop: '4px' }}
-              >
-                <option value="pas_clair">Pas clair / Erreur non résolue</option>
-                <option value="doublon">Doublon d'une fiche ou d'un projet existant</option>
-                <option value="inapproprie">Contenu inapproprié</option>
-              </select>
+    <Modal title="Signaler" subtitle="Un humain regarde chaque signalement." onClose={onClose}>
+      <form className="col" style={{ gap: 14 }} onSubmit={submit}>
+        <div className="col" style={{ gap: 8 }} role="radiogroup" aria-label="Motif">
+          {REASONS.map((r) => (
+            <label key={r.value} className="card tight row" style={{ cursor: 'pointer', borderColor: reason === r.value ? 'var(--accent)' : undefined }}>
+              <input type="radio" name="reason" checked={reason === r.value} onChange={() => setReason(r.value)} />
+              <span>
+                <strong>{r.label}</strong>
+                <span className="small muted" style={{ display: 'block' }}>{r.hint}</span>
+              </span>
             </label>
-
-            <label style={{ fontSize: '0.85rem', color: 'var(--mute)' }}>
-              Précisions (facultatif)
-              <textarea
-                className="textarea-field"
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                placeholder="Explique brièvement le problème…"
-                rows={3}
-                style={{ marginTop: '4px' }}
-              />
-            </label>
-
-            {error && <p className="text-danger" style={{ margin: 0, fontSize: '0.85rem' }}>{error}</p>}
-
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button type="button" className="link-text" onClick={onClose} style={{ color: 'var(--mute)' }}>
-                Annuler
-              </button>
-              <button type="submit" className="link-text" style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                Signaler
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+          ))}
+        </div>
+        <label className="field">
+          <span className="label">Précisions (facultatif)</span>
+          <textarea className="textarea" value={details} onChange={(e) => setDetails(e.target.value)} maxLength={500} />
+        </label>
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Annuler</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy && <Spinner />} Envoyer</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

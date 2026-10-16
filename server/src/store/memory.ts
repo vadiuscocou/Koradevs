@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { solutionWords } from '../solutions/words.js';
-import type { NewRequest, NewSolution, PurgeResult, Solution, Store, StoredRequest, User, UserInput } from './types.js';
+import type { DocKind, NewRequest, NewSolution, PurgeResult, Solution, Store, StoredRequest, User, UserInput } from './types.js';
 
 /** In-memory store for tests and quick local runs without PostgreSQL. */
 export class MemoryStore implements Store {
@@ -10,6 +10,7 @@ export class MemoryStore implements Store {
   private readonly requests = new Map<string, StoredRequest>();
   private readonly helperTech = new Map<string, string[]>();
   private readonly solutions = new Map<string, Solution>();
+  private readonly docs = new Map<string, { data: unknown; createdAt: number }>();
 
   async upsertUser(input: UserInput): Promise<User> {
     const existing = [...this.users.values()].find((u) => u.provider === input.provider && u.providerId === input.providerId);
@@ -137,6 +138,33 @@ export class MemoryStore implements Store {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit)
       .map((s) => structuredClone(s));
+  }
+
+  async putDoc(kind: DocKind, id: string, data: unknown): Promise<void> {
+    const key = `${kind}:${id}`;
+    this.docs.set(key, { data: structuredClone(data), createdAt: this.docs.get(key)?.createdAt ?? Date.now() });
+  }
+
+  async getDoc<T>(kind: DocKind, id: string): Promise<T | null> {
+    const doc = this.docs.get(`${kind}:${id}`);
+    return doc ? (structuredClone(doc.data) as T) : null;
+  }
+
+  async listDocs<T>(kind: DocKind, limit = 200): Promise<T[]> {
+    return [...this.docs.entries()]
+      .filter(([key]) => key.startsWith(`${kind}:`))
+      .sort((a, b) => b[1].createdAt - a[1].createdAt)
+      .slice(0, limit)
+      .map(([, doc]) => structuredClone(doc.data) as T);
+  }
+
+  async listHelperIds(): Promise<string[]> {
+    return [...this.helperTech.entries()].filter(([, tech]) => tech.length > 0).map(([id]) => id);
+  }
+
+  async findUserByLogin(login: string): Promise<User | null> {
+    const user = [...this.users.values()].find((u) => u.login.toLowerCase() === login.toLowerCase());
+    return user ? structuredClone(user) : null;
   }
 
   async purgeExpired(now: Date): Promise<PurgeResult> {

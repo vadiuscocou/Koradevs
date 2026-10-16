@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Autorise les liens de partage temporaires (ngrok, cloudflared) pour les tests d'équipe.
+    allowedHosts: true,
     proxy: {
       '/api': { target: api, rewrite: (path) => path.replace(/^\/api/, '') },
       '/ws': { target: api.replace(/^http/, 'ws'), ws: true },

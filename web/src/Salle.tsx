@@ -7,8 +7,10 @@ import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { yCollab } from 'y-codemirror.next';
 import * as Y from 'yjs';
+import { ArrowLeft, CircleCheck, CircleX, Code2, MessageSquare, Send, Terminal } from 'lucide-react';
 import type { ChatMessage, PublicUser, SalleMember, SalleState, ServerMessage } from '@sos/shared';
 import { connectRadar } from './api.js';
+import { Avatar, Badge, Modal, Spinner } from './ui.js';
 
 const REMOTE = 'serveur';
 
@@ -36,9 +38,9 @@ function Editor({ doc, path, line }: { doc: Y.Doc; path: string; line?: number }
           ...language(path),
           yCollab(text, null),
           EditorView.theme({
-            '&': { height: '100%', backgroundColor: '#0F1A16', color: '#E8EEEA' },
-            '.cm-content': { fontFamily: 'var(--font-mono)', fontSize: '14px' },
-            '.cm-gutters': { backgroundColor: '#0F1A16', color: '#5E7568', borderRight: '1px solid #1C2E26' },
+            '&': { height: '100%', backgroundColor: '#0e1914' },
+            '.cm-content': { fontFamily: 'var(--mono)', fontSize: '14px' },
+            '.cm-gutters': { backgroundColor: '#0e1914', color: '#5e7568', borderRight: '1px solid #1d2e26' },
           }),
         ],
       }),
@@ -59,16 +61,24 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [file, setFile] = useState('');
   const [chat, setChat] = useState<ChatMessage[]>([]);
-  const [showChat, setShowChat] = useState(false);
+  const [terminal, setTerminal] = useState('');
+  const [running, setRunning] = useState(false);
+  const [exitCode, setExitCode] = useState<number | null>(null);
+  const [execSeen, setExecSeen] = useState(false);
+  const [members, setMembers] = useState<SalleMember[]>([]);
   const [closed, setClosed] = useState<Closed | null>(null);
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
-  const [showFicheModal, setShowFicheModal] = useState(false);
-  const [ficheDraft, setFicheDraft] = useState({ error: '', cause: '', fix: '' });
-  const [ficheValidatedByMe, setFicheValidatedByMe] = useState(false);
-  const [ficheValidatedByOther, setFicheValidatedByOther] = useState(false);
+  const [tab, setTab] = useState<'chat' | 'terminal'>('chat');
+  const [mobileSide, setMobileSide] = useState(false);
+  const [ficheOpen, setFicheOpen] = useState(false);
+  const [fiche, setFiche] = useState({ error: '', cause: '', fix: '' });
+  const [testOk, setTestOk] = useState(false);
+  const [mine, setMine] = useState(false);
+  const [theirs, setTheirs] = useState(false);
   const socket = useRef<ReturnType<typeof connectRadar> | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const termEnd = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     let current: Y.Doc | null = null;
@@ -88,6 +98,12 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           setSalle(m.salle);
           setFile((f) => (m.salle.files.some((x) => x.path === f) ? f : (m.salle.files[0]?.path ?? '')));
           setChat(m.salle.chat);
+          setTerminal(m.salle.terminal);
+          setRunning(m.salle.running);
+          setExitCode(m.salle.lastExitCode);
+          setExecSeen(m.salle.members.some((x) => x.client === 'terminal') && m.salle.lastExitCode !== null);
+          setMembers(m.salle.members);
+          setFiche((f) => (f.error ? f : { ...f, error: m.salle.errorSummary }));
           setError('');
           return;
         }
@@ -96,6 +112,16 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           return;
         case 'message':
           return setChat((list) => [...list, m.message]);
+        case 'terminal':
+          return setTerminal((t) => (t + m.data).slice(-60_000));
+        case 'execution':
+          setRunning(m.state === 'en-cours');
+          setExecSeen(true);
+          if (m.state === 'en-cours') setTerminal('');
+          else setExitCode(m.exitCode);
+          return;
+        case 'presence':
+          return setMembers(m.members);
         case 'salle-fermee':
           current?.destroy();
           current = null;
@@ -104,11 +130,12 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         case 'erreur':
           return setError(m.message);
         case 'fiche-proposee':
-          setFicheDraft({ error: m.error, cause: m.cause, fix: m.fix });
-          setShowFicheModal(true);
+          setFiche({ error: m.error, cause: m.cause, fix: m.fix });
+          setFicheOpen(true);
           return;
         case 'fiche-validee':
-          setFicheValidatedByOther(true);
+          setTheirs(true);
+          setFicheOpen(true);
           return;
       }
     };
@@ -119,7 +146,15 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
     };
   }, [token, requestId]);
 
-  useEffect(() => chatEnd.current?.scrollTo(0, chatEnd.current.scrollHeight), [chat]);
+  useEffect(() => {
+    chatEnd.current?.scrollTo(0, chatEnd.current.scrollHeight);
+  }, [chat, tab]);
+  useEffect(() => {
+    termEnd.current?.scrollTo(0, termEnd.current.scrollHeight);
+  }, [terminal, tab]);
+  useEffect(() => {
+    if (execSeen && exitCode === 0) setTestOk(true);
+  }, [exitCode, execSeen]);
 
   if (closed) {
     const text = {
@@ -128,24 +163,27 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
       expiree: 'La salle a expiré.',
     }[closed.raison];
     return (
-      <div style={{ maxWidth: '480px', margin: '80px auto', padding: '24px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '1.4rem' }}>Salle fermée</h1>
-        <p className="text-mute" style={{ margin: '12px 0 24px 0' }}>{text}</p>
-        <button type="button" className="btn-primary" onClick={onLeave}>
-          Retour à l'accueil
-        </button>
+      <div className="login-form" style={{ minHeight: '100vh' }}>
+        <div className="login-box col" style={{ textAlign: 'center', alignItems: 'center', gap: 16 }}>
+          <CircleCheck size={48} color="var(--accent)" />
+          <h1 style={{ fontSize: '1.6rem' }}>Salle fermée</h1>
+          <p className="muted">{text}</p>
+          {closed.raison === 'resolue' && <p className="small muted">La fiche validée est maintenant dans la bibliothèque, et la preuve dans le Passeport de l’aidant.</p>}
+          <button type="button" className="btn btn-primary btn-lg" onClick={onLeave}>Retour à l’accueil</button>
+        </div>
       </div>
     );
   }
 
   if (!salle || !doc) {
     return (
-      <div style={{ maxWidth: '480px', margin: '80px auto', padding: '24px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '1.4rem' }}>Salle d'aide</h1>
-        <p className="text-mute">{error || 'Connexion au mini-IDE CodeFlash…'}</p>
-        <button type="button" className="link-text" onClick={onLeave} style={{ marginTop: '16px' }}>
-          Retour
-        </button>
+      <div className="login-form" style={{ minHeight: '100vh' }}>
+        <div className="login-box col" style={{ textAlign: 'center', alignItems: 'center', gap: 14 }}>
+          {error ? null : <Spinner size={28} />}
+          <h1 style={{ fontSize: '1.4rem' }}>Salle d’aide</h1>
+          <p className="muted">{error || 'Connexion à la salle de code partagée…'}</p>
+          <button type="button" className="btn btn-ghost" onClick={onLeave}>Retour</button>
+        </div>
       </div>
     );
   }
@@ -153,219 +191,141 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const isHelper = salle.role === 'aidant';
   const other = isHelper ? salle.requester : salle.helper;
   const current = salle.files.find((f) => f.path === file);
+  const hasTerminal = members.some((m) => m.client === 'terminal');
+  // A web request has no program to run: its exit code (always 1) is not a test result.
+  const shownExit = hasTerminal || execSeen ? exitCode : null;
+  const online = (login: string) => members.some((m) => m.login === login);
+
+  const sendChat = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    socket.current?.send({ type: 'message', requestId, text: draft });
+    setDraft('');
+  };
+
+  const canValidate = fiche.error.trim() && fiche.cause.trim() && fiche.fix.trim();
 
   return (
-    <div className="salle-screen">
-      {/* 1. Haut : Qui est là + En direct */}
-      <header className="salle-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '0.95rem' }}>
-            {salle.tech[0] || 'Code'} · avec @{other?.login || 'voisin'}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--accent)' }}>
-            <span className="status-dot" />
-            En direct
-          </span>
+    <div className="salle">
+      <header className="salle-bar">
+        <div className="row" style={{ gap: 12 }}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onLeave}><ArrowLeft size={15} /> Quitter</button>
+          <Avatar name={other.login} size={30} />
+          <div>
+            <strong style={{ fontSize: '0.92rem' }}>{salle.tech[0] ?? 'Code'} · avec @{other.login}</strong>
+            <div className="row small" style={{ gap: 6, color: '#8aa095' }}>
+              <span className={`dot ${online(other.login) ? 'live' : ''}`} /> {online(other.login) ? 'en direct' : 'absent pour l’instant'}
+            </div>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="link-text"
-          onClick={onLeave}
-          style={{ fontSize: '0.85rem', color: 'var(--mute)' }}
-        >
-          Quitter
-        </button>
+        <div className="row">
+          <button type="button" className="btn btn-ghost btn-sm salle-tabs" onClick={() => setMobileSide((v) => !v)}>
+            {mobileSide ? <Code2 size={15} /> : <MessageSquare size={15} />} {mobileSide ? 'Code' : 'Chat'}
+          </button>
+        </div>
       </header>
 
-      {/* 2. Onglets fichiers si plusieurs */}
       {salle.files.length > 1 && (
-        <div style={{ display: 'flex', gap: '4px', padding: '6px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--line)' }}>
+        <div className="salle-files" role="tablist">
           {salle.files.map((f) => (
-            <button
-              key={f.path}
-              type="button"
-              className="link-text"
-              onClick={() => setFile(f.path)}
-              style={{
-                fontSize: '0.82rem',
-                fontFamily: 'var(--font-mono)',
-                color: f.path === file ? 'var(--accent)' : 'var(--mute)',
-                padding: '4px 8px',
-              }}
-            >
+            <button key={f.path} type="button" role="tab" aria-selected={f.path === file} className={`salle-file ${f.path === file ? 'on' : ''}`} onClick={() => setFile(f.path)}>
               {f.path}
             </button>
           ))}
         </div>
       )}
 
-      {/* 3. Milieu : L'éditeur occupe tout l'écran */}
-      <div className="salle-editor-area" style={{ flex: 1, minHeight: 0 }}>
-        {current ? (
-          <Editor key={current.path} doc={doc} path={current.path} line={current.line} />
-        ) : (
-          <div style={{ padding: '24px', color: 'var(--mute)' }}>Aucun fichier partagé.</div>
-        )}
+      <div className={`salle-body ${mobileSide ? 'show-side' : ''}`}>
+        <div className="salle-editor">
+          {current ? <Editor key={current.path} doc={doc} path={current.path} line={current.line} /> : <div style={{ padding: 24, color: '#8aa095' }}>Aucun fichier partagé : discutez dans le chat.</div>}
+        </div>
+
+        <aside className="salle-side">
+          <div className={`test-box ${running ? '' : shownExit === 0 || testOk ? 'ok' : shownExit !== null ? 'ko' : ''}`}>
+            <div className="row" style={{ gap: 8 }}>
+              {running ? <Spinner size={16} /> : shownExit === 0 || testOk ? <CircleCheck size={18} color="var(--neon)" /> : shownExit !== null ? <CircleX size={18} color="#ff8f80" /> : <Terminal size={18} color="#8aa095" />}
+              <strong style={{ fontSize: '0.9rem' }}>
+                {running ? 'Test en cours…' : shownExit === 0 ? 'Le programme repasse au vert' : testOk ? 'Test confirmé par le demandeur' : shownExit !== null ? `Le programme échoue encore (code ${shownExit})` : 'Pas encore de test'}
+              </strong>
+            </div>
+            {!hasTerminal && !isHelper && shownExit !== 0 && (
+              <label className="row small" style={{ gap: 8, marginTop: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={testOk} onChange={(e) => setTestOk(e.target.checked)} />
+                Mon programme fonctionne maintenant
+              </label>
+            )}
+            {!hasTerminal && isHelper && !testOk && <div className="small" style={{ color: '#8aa095', marginTop: 6 }}>Le demandeur confirme quand son programme fonctionne.</div>}
+          </div>
+
+          <div className="row" style={{ padding: '10px 16px 0', gap: 6 }}>
+            <button type="button" className={`chip ${tab === 'chat' ? 'on' : ''}`} onClick={() => setTab('chat')}>Chat ({chat.length})</button>
+            {hasTerminal && <button type="button" className={`chip ${tab === 'terminal' ? 'on' : ''}`} onClick={() => setTab('terminal')}>Terminal</button>}
+          </div>
+
+          {tab === 'chat' || !hasTerminal ? (
+            <>
+              <div className="chat-log" ref={chatEnd}>
+                {chat.length === 0 && <div className="msg sys">Dis bonjour : explique ce que tu as déjà essayé.</div>}
+                {chat.map((m) => (
+                  <div key={m.id} className={`msg ${m.role === 'systeme' ? 'sys' : m.from === user.login ? 'me' : ''}`}>
+                    {m.role === 'systeme' ? m.text : (<><b>@{m.from}</b> {m.text}</>)}
+                  </div>
+                ))}
+              </div>
+              <form className="chat-form" onSubmit={sendChat}>
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Écrire un message…" aria-label="Message" maxLength={4000} />
+                <button type="submit" className="btn btn-neon btn-icon" aria-label="Envoyer" style={{ border: 0 }}><Send size={17} /></button>
+              </form>
+            </>
+          ) : (
+            <pre ref={termEnd} className="chat-log mono" style={{ margin: 0, fontSize: '0.78rem', color: '#c4d3ca', whiteSpace: 'pre-wrap' }}>{terminal || 'Aucune sortie pour l’instant.'}</pre>
+          )}
+        </aside>
       </div>
 
-      {/* Volet Chat rétractable */}
-      {showChat && (
-        <div style={{ height: '180px', borderBottom: '1px solid var(--line)', background: 'var(--surface)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }} ref={chatEnd}>
-            {chat.map((m) => (
-              <div key={m.id} style={{ fontSize: '0.85rem' }}>
-                <span style={{ fontWeight: 600, color: m.from === user.login ? 'var(--accent)' : 'var(--ink)' }}>
-                  @{m.from} :
-                </span>{' '}
-                <span style={{ color: 'var(--ink)' }}>{m.text}</span>
-              </div>
-            ))}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!draft.trim()) return;
-              socket.current?.send({ type: 'message', requestId, text: draft });
-              setDraft('');
-            }}
-            style={{ display: 'flex', borderTop: '1px solid var(--line)' }}
-          >
-            <input
-              type="text"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Écrire un message…"
-              style={{ flex: 1, background: 'transparent', border: 'none', padding: '8px 16px', color: 'var(--ink)', fontSize: '0.85rem', outline: 'none' }}
-            />
-            <button type="submit" className="link-text" style={{ padding: '0 16px', fontSize: '0.85rem' }}>
-              Envoyer
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* 4. Bas : Carte menthe du test réussi, Chat, et bouton vert néon Problème résolu */}
-      <footer className="salle-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              backgroundColor: 'var(--color-mint-bg)',
-              color: 'var(--color-mint-fg)',
-              padding: '6px 14px',
-              borderRadius: '14px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <span style={{ fontWeight: 800, fontSize: '0.86rem' }}>
-              ✓ Test réussi
-            </span>
-            <span style={{ fontSize: '0.74rem', opacity: 0.9 }}>
-              Avant : 1 échec. Maintenant : 1 sur 1.
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => setShowChat(!showChat)}
-            style={{ height: '36px', padding: '0 14px', fontSize: '0.85rem', borderColor: '#2A4437', color: '#E8EEEA' }}
-          >
-            {showChat ? 'Masquer Chat' : `💬 Chat (${chat.length})`}
-          </button>
-        </div>
-
-        {/* Le seul bouton plein vert néon de l'écran */}
-        <button
-          type="button"
-          className="btn-hero"
-          onClick={() => {
-            setShowFicheModal(true);
-            if (!ficheDraft.error) setFicheDraft({ error: salle.errorSummary, cause: 'Erreur identifiée et corrigée', fix: 'Code ajusté dans la session' });
-          }}
-          style={{ height: '46px', padding: '0 24px', fontSize: '15px' }}
-        >
-          Problème résolu
-        </button>
+      <footer className="salle-foot">
+        <div className="small" style={{ color: '#8aa095' }}>{error || (isHelper ? 'Tu aides @' + salle.requester.login : 'Un aidant te rejoint en direct')}</div>
+        <button type="button" className="btn btn-neon" onClick={() => setFicheOpen(true)}><CircleCheck size={18} /> Problème résolu</button>
       </footer>
 
-      {/* Modale de validation de la Fiche Solution */}
-      {showFicheModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Fiche solution</h2>
-            <p className="text-mute" style={{ fontSize: '0.85rem', margin: '0 0 16px 0' }}>
-              Cette fiche devient un savoir partagé dans la bibliothèque.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ fontSize: '0.82rem', color: 'var(--mute)' }}>
-                Erreur
-                <input
-                  type="text"
-                  className="input-field"
-                  value={ficheDraft.error}
-                  onChange={(e) => setFicheDraft({ ...ficheDraft, error: e.target.value })}
-                  style={{ marginTop: '4px' }}
-                />
+      {ficheOpen && (
+        <Modal title="Fiche solution" subtitle="Publiée dans la bibliothèque seulement si vous validez tous les deux. Aucun code personnel n’y figure." onClose={() => setFicheOpen(false)}>
+          <form
+            className="col"
+            style={{ gap: 14 }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!canValidate || mine) return;
+              setMine(true);
+              socket.current?.send({ type: 'valider-fiche', requestId, ...fiche, testOk: !isHelper && testOk });
+            }}
+          >
+            <label className="field">
+              <span className="label">Erreur</span>
+              <input className="input" value={fiche.error} onChange={(e) => setFiche({ ...fiche, error: e.target.value })} maxLength={500} disabled={mine} />
+            </label>
+            <label className="field">
+              <span className="label">Cause</span>
+              <textarea className="textarea" value={fiche.cause} onChange={(e) => setFiche({ ...fiche, cause: e.target.value })} placeholder="Pourquoi ça plantait ?" maxLength={1500} disabled={mine} />
+            </label>
+            <label className="field">
+              <span className="label">Correction</span>
+              <textarea className="textarea" value={fiche.fix} onChange={(e) => setFiche({ ...fiche, fix: e.target.value })} placeholder="Ce qu’il faut faire pour régler le problème." maxLength={3000} disabled={mine} />
+            </label>
+            {!isHelper && (
+              <label className="row small" style={{ gap: 8 }}>
+                <input type="checkbox" checked={testOk} onChange={(e) => setTestOk(e.target.checked)} disabled={mine} />
+                Mon programme fonctionne : la fiche aura le badge <Badge tone="mint">Confirmé</Badge>
               </label>
-
-              <label style={{ fontSize: '0.82rem', color: 'var(--mute)' }}>
-                Cause
-                <textarea
-                  className="textarea-field"
-                  value={ficheDraft.cause}
-                  onChange={(e) => setFicheDraft({ ...ficheDraft, cause: e.target.value })}
-                  rows={2}
-                  style={{ marginTop: '4px' }}
-                />
-              </label>
-
-              <label style={{ fontSize: '0.82rem', color: 'var(--mute)' }}>
-                Correction
-                <textarea
-                  className="textarea-field"
-                  value={ficheDraft.fix}
-                  onChange={(e) => setFicheDraft({ ...ficheDraft, fix: e.target.value })}
-                  rows={3}
-                  style={{ marginTop: '4px' }}
-                />
-              </label>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  className="link-text"
-                  onClick={() => setShowFicheModal(false)}
-                  style={{ color: 'var(--mute)' }}
-                >
-                  Annuler
-                </button>
-
-                <button
-                  type="button"
-                  className="link-text"
-                  onClick={() => {
-                    setFicheValidatedByMe(true);
-                    socket.current?.send({ type: 'valider-fiche', requestId, ...ficheDraft });
-                  }}
-                  disabled={ficheValidatedByMe}
-                  style={{ fontWeight: 600 }}
-                >
-                  {ficheValidatedByMe ? (ficheValidatedByOther ? 'Enregistrement…' : 'En attente de l’autre…') : 'Valider la fiche'}
-                </button>
-              </div>
-
-              {ficheValidatedByOther && !ficheValidatedByMe && (
-                <p style={{ color: 'var(--accent)', fontSize: '0.82rem', margin: 0 }}>
-                  L'autre développeur a validé la fiche. Clique sur Valider pour terminer !
-                </p>
-              )}
+            )}
+            {theirs && !mine && <div className="card tint-mint tight small">@{other.login} a déjà validé. Valide à ton tour pour publier.</div>}
+            {mine && <div className="card tint-mint tight small row"><Spinner /> En attente de @{other.login}…</div>}
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setFicheOpen(false)}>Plus tard</button>
+              <button type="submit" className="btn btn-primary" disabled={!canValidate || mine}>Valider la fiche</button>
             </div>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

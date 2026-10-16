@@ -19,7 +19,7 @@ async function bootstrap(): Promise<void> {
     const applied = await migrate(pool);
     if (applied.length) logger.log(`Migrations appliquées : ${applied.join(', ')}`);
     store = new PgStore(pool);
-  } else if (process.env.NODE_ENV === 'production') {
+  } else if (process.env.NODE_ENV === 'production' && !config.allowMemory) {
     throw new Error('DATABASE_URL est obligatoire en production.');
   } else {
     logger.warn('DATABASE_URL absent : les données restent en mémoire et disparaissent à l’arrêt.');

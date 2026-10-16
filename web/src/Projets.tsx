@@ -1,417 +1,315 @@
 import { useEffect, useState } from 'react';
-import { addProjectTask, createProject, getProjects, joinProject, updateProjectTaskStatus, type CommunityProject } from './api.js';
+import { ArrowLeft, Check, ExternalLink, FolderKanban, Flag, Link2, Plus, UserPlus, X } from 'lucide-react';
+import {
+  addProjectTask,
+  answerJoin,
+  createProject,
+  getProjects,
+  joinProject,
+  updateProjectTaskStatus,
+  type CommunityProject,
+  type TaskStatus,
+} from './api.js';
+import type { Shared } from './App.js';
+import { SignalerModal } from './SignalerModal.js';
+import { Avatar, Badge, Empty, Modal, Skeletons, Spinner, splitList, timeAgo, useToast } from './ui.js';
 
-interface ProjetsProps {
-  token: string;
-  user: { login: string };
-}
+const COLUMNS: Array<{ status: TaskStatus; label: string }> = [
+  { status: 'a_faire', label: 'À faire' },
+  { status: 'en_cours', label: 'En cours' },
+  { status: 'termine', label: 'Terminé' },
+];
 
-export function Projets({ token, user }: ProjetsProps) {
-  const [projects, setProjects] = useState<CommunityProject[]>([]);
-  const [filter, setFilter] = useState<'tous' | 'cherchent'>('tous');
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
+export function Projets({ shared }: { shared: Shared }) {
+  const { token, user } = shared;
+  const toast = useToast();
+  const [projects, setProjects] = useState<CommunityProject[] | null>(null);
+  const [filter, setFilter] = useState<'tous' | 'cherchent' | 'miens'>('tous');
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
-  // Formulaire nouveau projet
-  const [newTitle, setNewTitle] = useState('');
-  const [newDesc, setNewDesc] = useState('');
-  const [newRoles, setNewRoles] = useState('');
-  const [newTech, setNewTech] = useState('TypeScript, React');
-  const [newCity, setNewCity] = useState('Cotonou');
-
-  const loadProjects = () => {
-    getProjects().then(setProjects).catch(() => {});
-  };
-
+  const load = () => getProjects().then(setProjects, () => setProjects([]));
   useEffect(() => {
-    loadProjects();
+    void load();
   }, []);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    try {
-      const roles = newRoles.split(',').map((r) => r.trim()).filter(Boolean);
-      const techList = newTech.split(',').map((t) => t.trim()).filter(Boolean);
-      await createProject(token, {
-        title: newTitle.trim(),
-        description: newDesc.trim() || 'Projet communautaire développé avec soin.',
-        tech: techList.length ? techList : ['TypeScript', 'React'],
-        neededRoles: roles.length ? roles : ['Développeur'],
-        city: newCity,
-        country: 'Bénin',
-      });
-      setShowCreateModal(false);
-      setNewTitle('');
-      setNewDesc('');
-      setNewRoles('');
-      loadProjects();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
+  const open = projects?.find((p) => p.id === openId) ?? null;
 
-  const handleJoin = async (e: React.MouseEvent, projectId: string) => {
-    e.stopPropagation();
-    try {
-      await joinProject(token, projectId);
-      loadProjects();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
+  const visible = (projects ?? []).filter((p) =>
+    filter === 'cherchent' ? p.neededRoles.length > 0 : filter === 'miens' ? p.members.includes(user.login) : true,
+  );
 
-  const handleAddTask = async (e: React.FormEvent, projectId: string) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    try {
-      await addProjectTask(token, projectId, newTaskTitle.trim(), user.login);
-      setNewTaskTitle('');
-      loadProjects();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
-
-  const handleToggleTask = async (projectId: string, taskId: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'termine' ? 'a_faire' : 'termine';
-    try {
-      await updateProjectTaskStatus(token, projectId, taskId, nextStatus);
-      loadProjects();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
-
-  const displayedProjects = filter === 'cherchent'
-    ? projects.filter((p) => p.neededRoles.length > 0)
-    : projects;
+  if (open) {
+    return (
+      <ProjectDetail
+        project={open}
+        shared={shared}
+        onBack={() => setOpenId(null)}
+        onChanged={() => void load()}
+      />
+    );
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* 1. Haut : Titre + Bouton créer + Filtres */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>
-              Projets communautaires
-            </h1>
-            <p className="text-mute" style={{ margin: '4px 0 0 0', fontSize: '0.92rem' }}>
-              Les bâtisseurs se rassemblent pour concevoir et livrer ensemble.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setShowCreateModal(true)}
-            style={{ height: '42px', padding: '0 20px', fontSize: '14px', borderRadius: '9999px' }}
-          >
-            + Proposer
-          </button>
+    <div className="col" style={{ gap: 20 }}>
+      <div className="row between wrap">
+        <div className="page-head" style={{ margin: 0 }}>
+          <h1>Projets</h1>
+          <p>Présente ce que tu construis, trouve des coéquipiers.</p>
         </div>
-
-        {/* Deux onglets : Tous / Cherchent du monde */}
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            type="button"
-            className={`bottom-tab ${filter === 'tous' ? 'active' : ''}`}
-            onClick={() => setFilter('tous')}
-            style={{ fontSize: '0.9rem' }}
-          >
-            Tous les projets ({projects.length})
-          </button>
-          <button
-            type="button"
-            className={`bottom-tab ${filter === 'cherchent' ? 'active' : ''}`}
-            onClick={() => setFilter('cherchent')}
-            style={{ fontSize: '0.9rem' }}
-          >
-            Cherchent du monde ({projects.filter((p) => p.neededRoles.length > 0).length})
-          </button>
-        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+          <Plus size={18} /> Publier un projet
+        </button>
       </div>
 
-      {/* 2. Liste de cartes blanches arrondies 22px */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {displayedProjects.length === 0 ? (
-          <div className="card" style={{ padding: '36px 20px', textAlign: 'center' }}>
-            <p className="text-mute" style={{ margin: 0 }}>
-              Aucun projet pour ce filtre. Sois le premier à présenter une idée !
-            </p>
-          </div>
-        ) : (
-          displayedProjects.map((p) => {
-            const isMember = p.members.includes(user.login);
-            const isExpanded = selectedProjectId === p.id;
-            const completedCount = p.tasks.filter((t) => t.status === 'termine').length;
+      <div className="chips" role="group" aria-label="Filtrer">
+        {([['tous', 'Tous'], ['cherchent', 'Cherchent du monde'], ['miens', 'Les miens']] as const).map(([value, label]) => (
+          <button key={value} type="button" className={`chip ${filter === value ? 'on' : ''}`} onClick={() => setFilter(value)}>{label}</button>
+        ))}
+      </div>
 
+      {projects === null ? (
+        <Skeletons count={3} />
+      ) : visible.length === 0 ? (
+        <Empty icon={<FolderKanban size={28} />} title={projects.length === 0 ? 'Aucun projet publié pour l’instant' : 'Rien dans ce filtre'}>
+          {projects.length === 0 && (
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>Publie le premier</button>
+            </div>
+          )}
+        </Empty>
+      ) : (
+        <div className="col">
+          {visible.map((p) => {
+            const mine = p.members.includes(user.login);
             return (
-              <div
-                key={p.id}
-                className="card"
-                style={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '14px',
-                  borderColor: isExpanded ? 'var(--color-green)' : 'var(--color-line)',
-                }}
-                onClick={() => setSelectedProjectId(isExpanded ? null : p.id)}
-              >
-                {/* En-tête de la carte */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--color-ink)', fontSize: '1.1rem' }}>
-                        {p.title}
-                      </span>
-                      <span className="text-mute" style={{ fontSize: '0.82rem' }}>
-                        📍 {p.city} · {p.members.length} membre{p.members.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <p style={{ margin: '6px 0 0 0', fontSize: '0.92rem', color: 'var(--color-ink)', lineHeight: 1.5 }}>
-                      {p.description}
-                    </p>
-                  </div>
-
-                  {/* Bouton pilule vert sombre "Rejoindre" ou pastille "Membre" */}
-                  <div style={{ flexShrink: 0 }}>
-                    {!isMember ? (
-                      <button
-                        type="button"
-                        className="btn-pill-deep"
-                        onClick={(e) => handleJoin(e, p.id)}
-                      >
-                        Rejoindre
-                      </button>
-                    ) : (
-                      <span className="pill pill-mint">
-                        ✓ Membre
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Étiquettes : Ciel pour technos, Pêche pour rôles */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                  {p.tech.map((t) => (
-                    <span key={t} className="pill pill-sky">
-                      {t}
-                    </span>
-                  ))}
-
-                  {p.neededRoles.map((role) => (
-                    <span key={role} className="pill pill-peach">
-                      Cherche : {role}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Barre de résumé / Dépliage */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid var(--color-line)', fontSize: '0.84rem' }}>
-                  <span className="text-mute">
-                    {p.tasks.length === 0
-                      ? 'Aucune tâche définie'
-                      : `${completedCount}/${p.tasks.length} tâche${p.tasks.length > 1 ? 's' : ''} terminée${completedCount > 1 ? 's' : ''}`}
-                  </span>
-                  <span className="link-text" style={{ fontSize: '0.85rem' }}>
-                    {isExpanded ? 'Masquer les tâches ▲' : 'Voir les tâches ▼'}
-                  </span>
-                </div>
-
-                {/* Section détaillée des tâches */}
-                {isExpanded && (
-                  <div
-                    style={{
-                      paddingTop: '8px',
-                      cursor: 'default',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* Formulaire ajout tâche */}
-                    <form onSubmit={(e) => handleAddTask(e, p.id)} style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="text"
-                        className="input-box"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        placeholder="Ajouter une tâche au chantier…"
-                        style={{ height: '40px', padding: '0 14px', fontSize: '0.88rem' }}
-                      />
-                      <button
-                        type="submit"
-                        className="btn-primary"
-                        style={{ height: '40px', padding: '0 18px', fontSize: '0.88rem', borderRadius: '14px', whiteSpace: 'nowrap' }}
-                      >
-                        Ajouter
-                      </button>
-                    </form>
-
-                    {/* Liste des tâches */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {p.tasks.length === 0 ? (
-                        <p className="text-mute" style={{ fontSize: '0.85rem', margin: 0 }}>
-                          Pas encore de tâches. Ajoute la première ci-dessus !
-                        </p>
-                      ) : (
-                        p.tasks.map((t) => (
-                          <div
-                            key={t.id}
-                            onClick={() => handleToggleTask(p.id, t.id, t.status)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              padding: '8px 12px',
-                              borderRadius: '12px',
-                              backgroundColor: 'var(--color-bg)',
-                              cursor: 'pointer',
-                              border: '1px solid var(--color-line)',
-                              transition: 'all 150ms ease',
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                backgroundColor: t.status === 'termine' ? 'var(--color-green)' : 'transparent',
-                                color: t.status === 'termine' ? '#FFFFFF' : 'var(--color-mute)',
-                                border: t.status === 'termine' ? 'none' : '2px solid var(--color-mute)',
-                              }}
-                            >
-                              {t.status === 'termine' ? '✓' : ''}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: '0.9rem',
-                                color: t.status === 'termine' ? 'var(--color-mute)' : 'var(--color-ink)',
-                                textDecoration: t.status === 'termine' ? 'line-through' : 'none',
-                                flex: 1,
-                              }}
-                            >
-                              {t.title}
-                            </span>
-                            {t.assignee && (
-                              <span className="text-mute" style={{ fontSize: '0.78rem' }}>
-                                @{t.assignee}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      )}
+              <button key={p.id} type="button" className="card interactive" style={{ textAlign: 'left', width: '100%', font: 'inherit', color: 'inherit' }} onClick={() => setOpenId(p.id)}>
+                <div className="project-top">
+                  <div className="grow">
+                    <h3>{p.title}</h3>
+                    <div className="small muted">
+                      par @{p.author}{[p.city, p.country].filter(Boolean).length > 0 && ` · ${[p.city, p.country].filter(Boolean).join(', ')}`} · {timeAgo(p.createdAt)}
                     </div>
                   </div>
-                )}
-              </div>
+                  {mine ? <Badge tone="mint">Tu en fais partie</Badge> : null}
+                </div>
+                <p className="muted" style={{ margin: '10px 0 12px' }}>{p.description}</p>
+                <div className="row wrap" style={{ gap: 6 }}>
+                  {p.tech.map((t) => <Badge key={t} tone="sky">{t}</Badge>)}
+                  {p.neededRoles.map((r) => <Badge key={r} tone="peach">Cherche : {r}</Badge>)}
+                </div>
+              </button>
             );
-          })
-        )}
-      </div>
-
-      {/* 3. Modale création de projet */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.35rem', marginBottom: '8px' }}>Proposer un projet</h2>
-            <p className="text-mute" style={{ fontSize: '0.88rem', margin: '0 0 20px 0' }}>
-              Rassemble des pairs autour d'une idée utile pour la communauté.
-            </p>
-
-            <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
-                  Titre du projet
-                </label>
-                <input
-                  type="text"
-                  className="input-box"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="ex: KoraPay Mobile ou Passerelle SMS"
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
-                  Description de la mission
-                </label>
-                <textarea
-                  className="textarea-field"
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Ce que construit le projet, pourquoi c'est utile…"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
-                  Technologies utilisées (séparées par des virgules)
-                </label>
-                <input
-                  type="text"
-                  className="input-box"
-                  value={newTech}
-                  onChange={(e) => setNewTech(e.target.value)}
-                  placeholder="TypeScript, React, Python…"
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
-                  Profils recherchés (séparés par des virgules)
-                </label>
-                <input
-                  type="text"
-                  className="input-box"
-                  value={newRoles}
-                  onChange={(e) => setNewRoles(e.target.value)}
-                  placeholder="UI/UX, Backend Node, Testeur…"
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-ink)', display: 'block', marginBottom: '6px' }}>
-                  Ville de base
-                </label>
-                <input
-                  type="text"
-                  className="input-box"
-                  value={newCity}
-                  onChange={(e) => setNewCity(e.target.value)}
-                  placeholder="Cotonou, Lomé, Dakar…"
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Annuler
-                </button>
-                <button type="submit" className="btn-primary" style={{ height: '42px', padding: '0 24px', fontSize: '14px' }}>
-                  Publier le projet
-                </button>
-              </div>
-            </form>
-          </div>
+          })}
         </div>
       )}
+
+      {creating && (
+        <CreateProject
+          onClose={() => setCreating(false)}
+          onCreate={async (data) => {
+            await createProject(token, data);
+            toast('ok', 'Projet publié');
+            setCreating(false);
+            void load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateProject({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (data: { title: string; description: string; tech: string[]; neededRoles: string[]; repoUrl?: string; demoUrl?: string }) => Promise<void>;
+}) {
+  const toast = useToast();
+  const [form, setForm] = useState({ title: '', description: '', tech: '', roles: '', repoUrl: '', demoUrl: '' });
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await onCreate({
+        title: form.title,
+        description: form.description,
+        tech: splitList(form.tech),
+        neededRoles: splitList(form.roles),
+        repoUrl: form.repoUrl.trim() || undefined,
+        demoUrl: form.demoUrl.trim() || undefined,
+      });
+    } catch (err) {
+      toast('error', (err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Publier un projet" subtitle="Décris-le en quelques lignes, sépare les listes par des virgules." onClose={onClose}>
+      <form className="col" style={{ gap: 14 }} onSubmit={submit}>
+        <label className="field">
+          <span className="label">Nom du projet *</span>
+          <input className="input" value={form.title} onChange={set('title')} maxLength={80} required autoFocus />
+        </label>
+        <label className="field">
+          <span className="label">Description *</span>
+          <textarea className="textarea" value={form.description} onChange={set('description')} maxLength={600} required placeholder="Ce que ça fait, où vous en êtes…" />
+        </label>
+        <div className="grid-2">
+          <label className="field">
+            <span className="label">Technologies</span>
+            <input className="input" value={form.tech} onChange={set('tech')} placeholder="React, Node.js" />
+          </label>
+          <label className="field">
+            <span className="label">Rôles recherchés</span>
+            <input className="input" value={form.roles} onChange={set('roles')} placeholder="Dev mobile, Designer" />
+          </label>
+          <label className="field">
+            <span className="label">Dépôt (https://…)</span>
+            <input className="input" type="url" value={form.repoUrl} onChange={set('repoUrl')} />
+          </label>
+          <label className="field">
+            <span className="label">Démo (https://…)</span>
+            <input className="input" type="url" value={form.demoUrl} onChange={set('demoUrl')} />
+          </label>
+        </div>
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Annuler</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy && <Spinner />} Publier</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ProjectDetail({ project: p, shared, onBack, onChanged }: { project: CommunityProject; shared: Shared; onBack: () => void; onChanged: () => void }) {
+  const { token, user } = shared;
+  const toast = useToast();
+  const [taskTitle, setTaskTitle] = useState('');
+  const [reporting, setReporting] = useState(false);
+  const isMember = p.members.includes(user.login);
+  const isAuthor = p.author === user.login;
+  const asked = p.requests.includes(user.login);
+
+  const run = async (action: () => Promise<unknown>, success?: string) => {
+    try {
+      await action();
+      if (success) toast('ok', success);
+      onChanged();
+    } catch (e) {
+      toast('error', (e as Error).message);
+    }
+  };
+
+  return (
+    <div className="col" style={{ gap: 22 }}>
+      <div>
+        <button type="button" className="btn btn-text small" onClick={onBack}><ArrowLeft size={15} /> Tous les projets</button>
+      </div>
+
+      <div className="card col" style={{ gap: 14 }}>
+        <div className="project-top">
+          <div className="grow">
+            <h1 style={{ fontSize: '1.6rem' }}>{p.title}</h1>
+            <div className="small muted">par @{p.author} · {timeAgo(p.createdAt)}{p.city && ` · ${p.city}`}</div>
+          </div>
+          <button type="button" className="btn btn-icon" aria-label="Signaler ce projet" onClick={() => setReporting(true)}><Flag size={16} /></button>
+        </div>
+        <p>{p.description}</p>
+        <div className="row wrap" style={{ gap: 6 }}>
+          {p.tech.map((t) => <Badge key={t} tone="sky">{t}</Badge>)}
+          {p.neededRoles.map((r) => <Badge key={r} tone="peach">Cherche : {r}</Badge>)}
+        </div>
+        <div className="row wrap">
+          {p.repoUrl && <a className="btn btn-ghost btn-sm" href={p.repoUrl} target="_blank" rel="noopener noreferrer"><Link2 size={15} /> Dépôt</a>}
+          {p.demoUrl && <a className="btn btn-ghost btn-sm" href={p.demoUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> Démo</a>}
+          {!isMember && (
+            <button type="button" className="btn btn-primary btn-sm" disabled={asked} onClick={() => void run(() => joinProject(token, p.id).then((r) => toast('ok', r.message)))}>
+              <UserPlus size={15} /> {asked ? 'Demande envoyée' : 'Demander à rejoindre'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <section>
+        <div className="section-head"><h2 className="section-title">Équipe</h2><Badge>{p.members.length}</Badge></div>
+        <div className="row wrap" style={{ gap: 14 }}>
+          {p.members.map((m) => (
+            <span key={m} className="row" style={{ gap: 8 }}>
+              <Avatar name={m} size={32} />
+              <span className="small"><strong>@{m}</strong>{m === p.author && <span className="muted"> · auteur</span>}</span>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {isAuthor && p.requests.length > 0 && (
+        <section>
+          <div className="section-head"><h2 className="section-title">Demandes pour rejoindre</h2><Badge tone="peach">{p.requests.length}</Badge></div>
+          <div className="col">
+            {p.requests.map((login) => (
+              <div key={login} className="card tight row">
+                <Avatar name={login} size={34} />
+                <strong className="grow">@{login}</strong>
+                <button type="button" className="btn btn-soft btn-sm" onClick={() => void run(() => answerJoin(token, p.id, login, true), `@${login} rejoint l’équipe`)}><Check size={15} /> Accepter</button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => void run(() => answerJoin(token, p.id, login, false))}><X size={15} /></button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <div className="section-head"><h2 className="section-title">Tableau de tâches</h2></div>
+        {isMember && (
+          <form
+            className="row"
+            style={{ marginBottom: 14 }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!taskTitle.trim()) return;
+              void run(() => addProjectTask(token, p.id, taskTitle.trim()).then(() => setTaskTitle('')));
+            }}
+          >
+            <input className="input" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Nouvelle tâche…" maxLength={120} aria-label="Nouvelle tâche" />
+            <button type="submit" className="btn btn-primary"><Plus size={18} /> Ajouter</button>
+          </form>
+        )}
+        <div className="kanban">
+          {COLUMNS.map((col) => {
+            const tasks = p.tasks.filter((t) => t.status === col.status);
+            return (
+              <div key={col.status} className="kcol">
+                <h4>{col.label}<span>{tasks.length}</span></h4>
+                {tasks.map((t) => (
+                  <div key={t.id} className="task">
+                    {t.title}
+                    {isMember && (
+                      <div className="row">
+                        <select
+                          value={t.status}
+                          aria-label={`Statut de ${t.title}`}
+                          onChange={(e) => void run(() => updateProjectTaskStatus(token, p.id, t.id, e.target.value as TaskStatus))}
+                        >
+                          {COLUMNS.map((c) => <option key={c.status} value={c.status}>{c.label}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        {p.tasks.length === 0 && <p className="muted small" style={{ marginTop: 10 }}>{isMember ? 'Ajoute la première tâche pour organiser le travail.' : 'Pas encore de tâche.'}</p>}
+      </section>
+
+      {reporting && <SignalerModal token={token} targetType="projet" targetId={p.id} onClose={() => setReporting(false)} />}
     </div>
   );
 }

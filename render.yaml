@@ -1,0 +1,22 @@
+# Déploiement Render : un seul service qui sert le site et le serveur (WebSocket compris).
+# Mode « test d'équipe » : stockage en mémoire (les données sont effacées à chaque redémarrage).
+# Pour garder les données : crée une base PostgreSQL sur Render et ajoute DATABASE_URL.
+services:
+  - type: web
+    name: koradevs
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm run server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: SOS_SERVE_WEB
+        value: "1"
+      - key: SOS_ALLOW_MEMORY
+        value: "1"
+      - key: SOS_DEV_AUTH
+        value: "1"
