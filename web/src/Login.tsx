@@ -3,6 +3,7 @@ import { ArrowRight, BadgeCheck, LifeBuoy, ShieldCheck, Users } from 'lucide-rea
 import type { PublicUser } from '@sos/shared';
 import { GITHUB_LOGIN_URL, authConfig, loginDev } from './api.js';
 import { Logo } from './Logo.js';
+import { CodeScene } from './Visuals.js';
 import { Spinner, ThemeButton } from './ui.js';
 
 export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string, user: PublicUser) => void; dark: boolean; toggleTheme: () => void }) {
@@ -46,6 +47,7 @@ export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string,
           <p style={{ marginTop: 14, color: 'rgba(255,255,255,.8)', maxWidth: 440 }}>
             Un quartier de développeurs, en français, léger. L’aide arrive en direct, la solution est confirmée par un test et devient un savoir partagé.
           </p>
+          <div className="login-scene"><CodeScene /></div>
           <ul>
             <li><LifeBuoy size={20} /> Un aidant te rejoint dans une salle de code partagée</li>
             <li><ShieldCheck size={20} /> Tes secrets sont masqués avant tout envoi</li>

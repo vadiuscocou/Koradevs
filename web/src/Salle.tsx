@@ -12,6 +12,7 @@ import type { ChatMessage, PublicUser, RunResult, SalleMember, SalleState, Serve
 import { connectRadar } from './api.js';
 import { isRunnable, runInSandbox } from './sandbox.js';
 import { Avatar, Badge, Modal, Spinner } from './ui.js';
+import { Confetti, DrawnCheck } from './Visuals.js';
 
 const REMOTE = 'serveur';
 
@@ -71,7 +72,10 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
   const [tab, setTab] = useState<'chat' | 'terminal'>('chat');
-  const [mobileSide, setMobileSide] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'code' | 'run' | 'chat'>('code');
+  const [burst, setBurst] = useState(0);
+  const [banner, setBanner] = useState(false);
+  const seenGreen = useRef<boolean | null>(null);
   const [ficheOpen, setFicheOpen] = useState(false);
   const [fiche, setFiche] = useState({ error: '', cause: '', fix: '' });
   const [testOk, setTestOk] = useState(false);
@@ -167,6 +171,23 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
     if (execSeen && exitCode === 0) setTestOk(true);
   }, [exitCode, execSeen]);
 
+  // The moment the test turns green: confetti and a banner (not when joining a room that was already green).
+  useEffect(() => {
+    if (!salle) return undefined;
+    if (seenGreen.current === null) {
+      seenGreen.current = testOk;
+      return undefined;
+    }
+    if (testOk && !seenGreen.current) {
+      seenGreen.current = true;
+      setBurst((b) => b + 1);
+      setBanner(true);
+      const id = window.setTimeout(() => setBanner(false), 3400);
+      return () => window.clearTimeout(id);
+    }
+    return undefined;
+  }, [testOk, salle]);
+
   if (closed) {
     const text = {
       resolue: `Problème résolu${closed.by ? ` (par @${closed.by})` : ''}. Le code a été effacé du serveur.`,
@@ -176,8 +197,8 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
     return (
       <div className="login-form" style={{ minHeight: '100vh' }}>
         <div className="login-box col" style={{ textAlign: 'center', alignItems: 'center', gap: 16 }}>
-          <CircleCheck size={48} color="var(--accent)" />
-          <h1 style={{ fontSize: '1.6rem' }}>Salle fermée</h1>
+          {closed.raison === 'resolue' ? <><DrawnCheck size={84} /><Confetti pieces={64} /></> : <CircleCheck size={48} color="var(--accent)" />}
+          <h1 style={{ fontSize: '1.6rem' }}>{closed.raison === 'resolue' ? 'Bravo, c’est résolu !' : 'Salle fermée'}</h1>
           <p className="muted">{text}</p>
           {closed.raison === 'resolue' && <p className="small muted">La fiche validée est maintenant dans la bibliothèque, et la preuve dans le Passeport de l’aidant.</p>}
           <button type="button" className="btn btn-primary btn-lg" onClick={onLeave}>Retour à l’accueil</button>
@@ -229,6 +250,8 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
 
   return (
     <div className="salle">
+      {burst > 0 && <Confetti key={burst} />}
+      {banner && <div className="celebrate"><CircleCheck size={20} /> Test au vert, bien joué !</div>}
       <header className="salle-bar">
         <div className="row" style={{ gap: 12 }}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onLeave}><ArrowLeft size={15} /> Quitter</button>
@@ -240,10 +263,12 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
             </div>
           </div>
         </div>
-        <div className="row">
-          <button type="button" className="btn btn-ghost btn-sm salle-tabs" onClick={() => setMobileSide((v) => !v)}>
-            {mobileSide ? <Code2 size={15} /> : <MessageSquare size={15} />} {mobileSide ? 'Code' : 'Chat'}
-          </button>
+        <div className="salle-seg" role="tablist" aria-label="Affichage">
+          {([['code', 'Code', Code2], ['run', 'Exécuter', Play], ['chat', 'Chat', MessageSquare]] as const).map(([id, label, Icon]) => (
+            <button key={id} type="button" role="tab" aria-selected={mobileTab === id} className={mobileTab === id ? 'on' : ''} onClick={() => setMobileTab(id)}>
+              <Icon size={14} /> {label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -257,12 +282,13 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         </div>
       )}
 
-      <div className={`salle-body ${mobileSide ? 'show-side' : ''}`}>
+      <div className="salle-body" data-tab={mobileTab}>
         <div className="salle-editor">
           {current ? <Editor key={current.path} doc={doc} path={current.path} line={current.line} /> : <div style={{ padding: 24, color: '#8aa095' }}>Aucun fichier partagé : discutez dans le chat.</div>}
         </div>
 
         <aside className="salle-side">
+          <div data-sec="run" className="sec">
           <div className={`test-box ${running ? '' : shownExit === 0 || testOk ? 'ok pop' : shownExit !== null ? 'ko' : ''}`}>
             <div className="row" style={{ gap: 8 }}>
               {running ? <Spinner size={16} /> : shownExit === 0 || testOk ? <CircleCheck size={18} color="var(--neon)" /> : shownExit !== null ? <CircleX size={18} color="#ff8f80" /> : <Terminal size={18} color="#8aa095" />}
@@ -306,6 +332,9 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
             </div>
           )}
 
+          </div>
+
+          <div data-sec="chat" className="sec chat-sec">
           <div className="row" style={{ padding: '10px 16px 0', gap: 6 }}>
             <button type="button" className={`chip ${tab === 'chat' ? 'on' : ''}`} onClick={() => setTab('chat')}>Chat ({chat.length})</button>
             {hasTerminal && <button type="button" className={`chip ${tab === 'terminal' ? 'on' : ''}`} onClick={() => setTab('terminal')}>Terminal</button>}
@@ -329,6 +358,7 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           ) : (
             <pre ref={termEnd} className="chat-log mono" style={{ margin: 0, fontSize: '0.78rem', color: '#c4d3ca', whiteSpace: 'pre-wrap' }}>{terminal || 'Aucune sortie pour l’instant.'}</pre>
           )}
+          </div>
         </aside>
       </div>
 

@@ -43,7 +43,8 @@ export function runInSandbox(code: string): Promise<SandboxResult> {
     const frame = document.createElement('iframe');
     frame.setAttribute('sandbox', 'allow-scripts');
     frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;visibility:hidden';
+    // Off screen but not `display:none` / `visibility:hidden`: some browsers never load such an iframe.
+    frame.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
     let settled = false;
 
     const finish = (result: SandboxResult) => {

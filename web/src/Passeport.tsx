@@ -34,7 +34,7 @@ export function PasseportCard({ passport }: { passport: Passport }) {
               </div>
             )}
           </div>
-          <BadgeCheck size={34} color="#4DF08C" aria-hidden="true" />
+          <span className="seal" aria-hidden="true"><BadgeCheck size={30} color="#4DF08C" /></span>
         </div>
 
         <div className="stat-row">

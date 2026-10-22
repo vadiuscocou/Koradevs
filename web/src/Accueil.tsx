@@ -4,6 +4,7 @@ import type { SolutionHit } from '@sos/shared';
 import { cancelRequest, getConfirmedIds, getNeighbors, getRecentSolutions, getStats, ringNeighbor, type CommunityProfile } from './api.js';
 import type { Shared } from './App.js';
 import { NotifyButton } from './Notifications.js';
+import { CodeScene, CountUp } from './Visuals.js';
 import { Avatar, Badge, Empty, Skeletons, timeAgo, useToast } from './ui.js';
 
 export function Accueil({ shared }: { shared: Shared }) {
@@ -57,8 +58,9 @@ export function Accueil({ shared }: { shared: Shared }) {
   ];
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg stagger">
       <section className="hero">
+        <div className="hero-art"><CodeScene /></div>
         <span className="eyebrow">
           <Sparkles size={14} /> Salut @{user.login}
         </span>
@@ -76,9 +78,9 @@ export function Accueil({ shared }: { shared: Shared }) {
 
       {stats && (
         <div className="grid-3" aria-label="Chiffres de la plateforme">
-          <div className="stat-tile"><b>{stats.fiches}</b><span>fiche{stats.fiches > 1 ? 's' : ''} solution{stats.fiches > 1 ? 's' : ''}</span></div>
-          <div className="stat-tile"><b>{stats.aides}</b><span>aide{stats.aides > 1 ? 's' : ''} publiée{stats.aides > 1 ? 's' : ''}</span></div>
-          <div className="stat-tile"><b>{stats.aidants}</b><span>aidant{stats.aidants > 1 ? 's' : ''} à leur porte</span></div>
+          <div className="stat-tile"><b><CountUp value={stats.fiches} /></b><span>fiche{stats.fiches > 1 ? 's' : ''} solution{stats.fiches > 1 ? 's' : ''}</span></div>
+          <div className="stat-tile"><b><CountUp value={stats.aides} /></b><span>aide{stats.aides > 1 ? 's' : ''} publiée{stats.aides > 1 ? 's' : ''}</span></div>
+          <div className="stat-tile"><b><CountUp value={stats.aidants} /></b><span>aidant{stats.aidants > 1 ? 's' : ''} à leur porte</span></div>
         </div>
       )}
 
