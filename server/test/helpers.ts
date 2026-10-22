@@ -1,6 +1,7 @@
 import type { SosRequest } from '@sos/shared';
 import { createApp } from '../src/app.js';
 import { GithubApiError, type GithubClient } from '../src/auth/github.js';
+import { GoogleApiError, type GoogleClient } from '../src/auth/google.js';
 import { loadConfig, type AppConfig } from '../src/config.js';
 import { MemoryStore } from '../src/store/memory.js';
 import type { PushSender } from '../src/tokens.js';
@@ -32,6 +33,18 @@ export const fakeGithub: GithubClient = {
   },
 };
 
+export const fakeGoogle: GoogleClient = {
+  async exchangeCode({ code, clientSecret }) {
+    if (clientSecret !== 'google-secret-test') throw new GoogleApiError(401);
+    if (code === 'code-g-awa') return 'g-awa';
+    throw new GoogleApiError(401);
+  },
+  async getUser(token) {
+    if (token === 'g-awa') return { sub: 'google-sub-1', name: 'Awa Diop', email: 'awa@example.com', picture: 'https://lh3.example/awa.png' };
+    throw new GoogleApiError(401);
+  },
+};
+
 export async function testApp(config: Partial<AppConfig> = {}, extras: { pushSender?: PushSender } = {}) {
   const clock = { now: new Date('2026-10-08T10:00:00.000Z') };
   const store = new MemoryStore();
@@ -40,6 +53,7 @@ export async function testApp(config: Partial<AppConfig> = {}, extras: { pushSen
       config: { ...loadConfig({ NODE_ENV: 'test', GITHUB_CLIENT_ID: 'client-test' }), ...config },
       store,
       github: fakeGithub,
+      google: fakeGoogle,
       clock: () => clock.now,
       pushSender: extras.pushSender ?? (async () => undefined),
     },

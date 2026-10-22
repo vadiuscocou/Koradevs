@@ -5,7 +5,7 @@ export interface PublicUser {
   login: string;
   name: string | null;
   avatarUrl: string | null;
-  provider: 'github' | 'dev';
+  provider: 'github' | 'dev' | 'google' | 'password';
 }
 
 export interface SessionResponse {

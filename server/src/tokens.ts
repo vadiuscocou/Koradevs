@@ -1,6 +1,7 @@
 export const CONFIG = 'SOS_CONFIG';
 export const STORE = 'SOS_STORE';
 export const GITHUB = 'SOS_GITHUB';
+export const GOOGLE = 'SOS_GOOGLE';
 export const CLOCK = 'SOS_CLOCK';
 
 export const PUSH_SENDER = 'SOS_PUSH_SENDER';

@@ -26,10 +26,22 @@ export async function loginDev(login: string): Promise<SessionResponse> {
   return session;
 }
 
-export const authConfig = () => call<{ githubClientId: string | null; devAuth: boolean; githubWeb: boolean }>('GET', '/auth/config');
+export const authConfig = () =>
+  call<{ githubClientId: string | null; devAuth: boolean; githubWeb: boolean; googleWeb: boolean; passwordAuth: boolean }>('GET', '/auth/config');
+
+async function startSession(route: string, body: unknown): Promise<SessionResponse> {
+  const session = await call<SessionResponse>('POST', route, body);
+  localStorage.setItem(TOKEN_KEY, session.token);
+  return session;
+}
+
+/** Create an account with an e-mail and a password. */
+export const signup = (input: { email: string; login: string; password: string }) => startSession('/auth/signup', input);
+export const loginWithPassword = (input: { email: string; password: string }) => startSession('/auth/login', input);
 
 /** Where the browser goes to start « Continuer avec GitHub ». */
 export const GITHUB_LOGIN_URL = '/api/auth/github/login';
+export const GOOGLE_LOGIN_URL = '/api/auth/google/login';
 
 /**
  * GitHub sends the person back to `#/connexion?token=…` (or `?erreur=…`).

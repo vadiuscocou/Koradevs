@@ -1,6 +1,6 @@
 import type { SosRequest } from '@sos/shared';
 
-export type Provider = 'github' | 'dev';
+export type Provider = 'github' | 'dev' | 'google' | 'password';
 
 export interface User {
   id: string;
@@ -60,6 +60,10 @@ export type DocKind = 'profile' | 'project' | 'report' | 'proof' | 'replay' | 'c
 export interface Store {
   readonly kind: 'postgres' | 'memoire';
   upsertUser(input: UserInput): Promise<User>;
+  findUserByProvider(provider: Provider, providerId: string): Promise<User | null>;
+  /** Creates an account with an e-mail and a password hash, atomically. A login or an e-mail already taken is reported, never overwritten. */
+  createPasswordUser(input: { login: string; email: string; passwordHash: string }): Promise<{ user: User } | { conflict: 'login' | 'email' }>;
+  findCredential(email: string): Promise<{ userId: string; passwordHash: string } | null>;
   createSession(tokenHash: string, userId: string, expiresAt: Date): Promise<void>;
   findUserBySession(tokenHash: string, now: Date): Promise<User | null>;
   deleteSession(tokenHash: string): Promise<void>;

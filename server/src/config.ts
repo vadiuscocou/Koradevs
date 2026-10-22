@@ -4,6 +4,11 @@ export interface AppConfig {
   githubClientId: string | undefined;
   /** Secret of the GitHub OAuth App, only needed for the GitHub button of the website. */
   githubClientSecret: string | undefined;
+  /** « Continuer avec Google » : OAuth client of the Google Cloud project. */
+  googleClientId: string | undefined;
+  googleClientSecret: string | undefined;
+  /** Sign up and log in with an e-mail and a password. */
+  passwordAuth: boolean;
   /** Allows `sos login --dev <pseudo>` without GitHub. Never enable in production. */
   devAuth: boolean;
   /** The code of a request is erased after this delay (24 h maximum). */
@@ -37,6 +42,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     databaseUrl: env.DATABASE_URL || undefined,
     githubClientId: env.GITHUB_CLIENT_ID || undefined,
     githubClientSecret: env.GITHUB_CLIENT_SECRET || undefined,
+    googleClientId: env.GOOGLE_CLIENT_ID || undefined,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET || undefined,
+    passwordAuth: env.SOS_PASSWORD_AUTH !== '0',
     devAuth: env.SOS_DEV_AUTH !== undefined && env.SOS_DEV_AUTH !== '' ? env.SOS_DEV_AUTH === '1' : !production,
     requestTtlHours: numberFrom(env.SOS_REQUEST_TTL_HOURS, 24, 1, 24),
     maxRequestsPerHour: numberFrom(env.SOS_MAX_REQUESTS_PER_HOUR, 3, 1, 1000),

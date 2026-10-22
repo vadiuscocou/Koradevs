@@ -61,7 +61,7 @@ sequenceDiagram
 | Test confirmé | Seul un résultat vert lancé **par le demandeur** compte | L'aidant ne peut pas se confirmer lui-même |
 | Passeport | Empreinte SHA-256 d'un JSON canonique, recalculable dans le navigateur, QR code | Preuve vérifiable sans faire confiance au serveur |
 | Avant / après | Publié seulement si le demandeur le coche, masqué à nouveau | Consentement explicite |
-| Connexion | OAuth GitHub, état signé (HMAC) + cookie, jeton rendu dans le fragment d'URL | Contre le détournement de connexion |
+| Comptes | E-mail + mot de passe (scrypt, sel aléatoire, blocage après 8 essais), GitHub et Google (OAuth, état signé HMAC lié au fournisseur + cookie, jeton rendu dans le fragment d'URL), pseudos uniques | Pas de mot de passe en clair, pas de détournement de connexion |
 | Notifications | Web Push, clés VAPID créées une fois et gardées en base | Aucune configuration |
 | Stockage | PostgreSQL (migrations versionnées), ou mémoire pour les tests | Données durables en production |
 | Licences | Audit automatique, seulement MIT, ISC, Apache, BSD | Règlement du concours, article 6 |

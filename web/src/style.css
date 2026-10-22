@@ -2542,6 +2542,132 @@ svg {
   }
 }
 
+/* Connexion : onglets, Google, mot de passe */
+
+.seg-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+
+.seg-tabs button {
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mute);
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.seg-tabs button.on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-google {
+  background: #fff;
+  color: #1f1f1f;
+  border-color: #dadce0;
+}
+
+.btn-google:hover {
+  background: #f8f9fa;
+}
+
+[data-theme='dark'] .btn-google {
+  background: #fff;
+  color: #1f1f1f;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.pw {
+  position: relative;
+  display: block;
+}
+
+.pw .input {
+  padding-right: 48px;
+}
+
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--faint);
+}
+
+.pw-toggle:hover {
+  color: var(--ink);
+  background: var(--bg-soft);
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.meter .bars {
+  display: flex;
+  gap: 4px;
+}
+
+.meter i {
+  width: 28px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  transition: background 0.2s;
+}
+
+.meter i.on.s1 { background: #ff6b5a; }
+.meter i.on.s2 { background: #f2a93b; }
+.meter i.on.s3 { background: #7bcf5a; }
+.meter i.on.s4 { background: var(--accent); }
+
+.demo {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--line-strong);
+  font-size: 0.86rem;
+}
+
+.demo summary {
+  cursor: pointer;
+  color: var(--mute);
+  font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

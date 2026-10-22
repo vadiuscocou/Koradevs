@@ -119,6 +119,22 @@ node scripts/loadtest-ws.mjs http://localhost:4000 25
 
 Il faut le mode démo (`SOS_DEV_AUTH=1`). Au-delà de 25 paires, augmente la limite de connexions avec `SOS_AUTH_RATE_PER_MIN`.
 
+### Comptes : e-mail, GitHub, Google
+
+Le site propose trois façons d'entrer, sans mode démo :
+
+- **Créer un compte / se connecter avec un e-mail et un mot de passe.** Seule l'empreinte du mot de passe est gardée (scrypt, sel aléatoire), jamais le mot de passe. Au bout de 8 essais ratés, l'adresse est bloquée 15 minutes. Pas d'indication sur la partie fausse (e-mail ou mot de passe). Désactivable avec `SOS_PASSWORD_AUTH=0`.
+- **Continuer avec GitHub** : voir la section précédente.
+- **Continuer avec Google** :
+  1. Google Cloud Console → **APIs et services** → **Écran de consentement OAuth** : type *Externe*, nom de l'application, e-mail d'assistance, portées `openid`, `email`, `profile`. Passe l'application en **production** (sinon seuls les testeurs déclarés peuvent se connecter).
+  2. **Identifiants** → **Créer des identifiants** → **ID client OAuth** → *Application Web*.
+  3. **URI de redirection autorisé** : `<adresse du site>/api/auth/google/callback` (`http://localhost:5173/api/auth/google/callback` en local).
+  4. Mets `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` et `SOS_WEB_URL` dans le serveur. Le secret n'est jamais commité.
+
+Chaque personne a un **pseudo unique** (insensible à la casse) : si GitHub ou Google propose un pseudo déjà pris, il devient `Awa-Diop-2`. Un même e-mail utilisé avec deux méthodes donne deux comptes séparés. Pas encore de vérification d'e-mail ni de « mot de passe oublié » : il faut pour cela un service d'envoi d'e-mails (SMTP).
+
+Une fois les vraies connexions en place, mets `SOS_DEV_AUTH=0` pour supprimer le mode démo.
+
 ### API
 
 | Route | Rôle |

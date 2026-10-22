@@ -3,6 +3,8 @@ import type pg from 'pg';
 import type { SosRequest } from '@sos/shared';
 import type { DocKind, NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, Store, StoredRequest, User, UserInput } from './types.js';
 
+const ACCOUNT_LOCK = 7_277_278;
+
 interface UserRow {
   id: string;
   provider: Provider;
@@ -88,6 +90,50 @@ export class PgStore implements Store {
       [randomUUID(), input.provider, input.providerId, input.login, input.name, input.avatarUrl],
     );
     return toUser(rows[0]!);
+  }
+
+  async findUserByProvider(provider: Provider, providerId: string): Promise<User | null> {
+    const { rows } = await this.pool.query<UserRow>('SELECT * FROM users WHERE provider = $1 AND provider_id = $2', [provider, providerId]);
+    return rows[0] ? toUser(rows[0]) : null;
+  }
+
+  async createPasswordUser(input: { login: string; email: string; passwordHash: string }): Promise<{ user: User } | { conflict: 'login' | 'email' }> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      // One account creation at a time: the checks below and the inserts must not interleave.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [ACCOUNT_LOCK]);
+      const taken = await client.query<{ email_taken: boolean; login_taken: boolean }>(
+        `SELECT EXISTS (SELECT 1 FROM credentials WHERE email = $1) AS email_taken,
+                EXISTS (SELECT 1 FROM users WHERE lower(login) = lower($2)) AS login_taken`,
+        [input.email, input.login],
+      );
+      if (taken.rows[0]!.email_taken) {
+        await client.query('ROLLBACK');
+        return { conflict: 'email' };
+      }
+      if (taken.rows[0]!.login_taken) {
+        await client.query('ROLLBACK');
+        return { conflict: 'login' };
+      }
+      const { rows } = await client.query<UserRow>(
+        `INSERT INTO users (id, provider, provider_id, login, name, avatar_url) VALUES ($1, 'password', $2, $3, NULL, NULL) RETURNING *`,
+        [randomUUID(), input.email, input.login],
+      );
+      await client.query('INSERT INTO credentials (user_id, email, password_hash) VALUES ($1, $2, $3)', [rows[0]!.id, input.email, input.passwordHash]);
+      await client.query('COMMIT');
+      return { user: toUser(rows[0]!) };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async findCredential(email: string): Promise<{ userId: string; passwordHash: string } | null> {
+    const { rows } = await this.pool.query<{ user_id: string; password_hash: string }>('SELECT user_id, password_hash FROM credentials WHERE email = $1', [email]);
+    return rows[0] ? { userId: rows[0].user_id, passwordHash: rows[0].password_hash } : null;
   }
 
   async createSession(tokenHash: string, userId: string, expiresAt: Date): Promise<void> {

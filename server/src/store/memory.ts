@@ -10,6 +10,7 @@ export class MemoryStore implements Store {
   private readonly requests = new Map<string, StoredRequest>();
   private readonly helperTech = new Map<string, string[]>();
   private readonly solutions = new Map<string, Solution>();
+  private readonly credentials = new Map<string, { userId: string; passwordHash: string }>();
   private readonly docs = new Map<string, { data: unknown; createdAt: number }>();
 
   async upsertUser(input: UserInput): Promise<User> {
@@ -21,6 +22,25 @@ export class MemoryStore implements Store {
     const user: User = { id: randomUUID(), ...input, createdAt: new Date() };
     this.users.set(user.id, user);
     return structuredClone(user);
+  }
+
+  async findUserByProvider(provider: User['provider'], providerId: string): Promise<User | null> {
+    const user = [...this.users.values()].find((u) => u.provider === provider && u.providerId === providerId);
+    return user ? structuredClone(user) : null;
+  }
+
+  async createPasswordUser(input: { login: string; email: string; passwordHash: string }): Promise<{ user: User } | { conflict: 'login' | 'email' }> {
+    if (this.credentials.has(input.email)) return { conflict: 'email' };
+    if ([...this.users.values()].some((u) => u.login.toLowerCase() === input.login.toLowerCase())) return { conflict: 'login' };
+    const user: User = { id: randomUUID(), provider: 'password', providerId: input.email, login: input.login, name: null, avatarUrl: null, createdAt: new Date() };
+    this.users.set(user.id, user);
+    this.credentials.set(input.email, { userId: user.id, passwordHash: input.passwordHash });
+    return { user: structuredClone(user) };
+  }
+
+  async findCredential(email: string): Promise<{ userId: string; passwordHash: string } | null> {
+    const credential = this.credentials.get(email);
+    return credential ? { ...credential } : null;
   }
 
   async createSession(tokenHash: string, userId: string, expiresAt: Date): Promise<void> {

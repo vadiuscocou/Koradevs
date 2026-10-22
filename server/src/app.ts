@@ -8,6 +8,7 @@ import { AuthController } from './auth/auth.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
 import { fetchGithubClient, type GithubClient } from './auth/github.js';
+import { fetchGoogleClient, type GoogleClient } from './auth/google.js';
 import type { AppConfig } from './config.js';
 import { HealthController } from './health.controller.js';
 import { RadarService } from './radar/radar.service.js';
@@ -23,12 +24,13 @@ import { authRateLimit, securityHeaders } from './security.js';
 import type { Store } from './store/types.js';
 import { PushController } from './push/push.controller.js';
 import { PushService, webPushSender } from './push/push.service.js';
-import { CLOCK, CONFIG, GITHUB, PUSH_SENDER, STORE, type Clock, type PushSender } from './tokens.js';
+import { CLOCK, CONFIG, GITHUB, GOOGLE, PUSH_SENDER, STORE, type Clock, type PushSender } from './tokens.js';
 
 export interface AppDeps {
   config: AppConfig;
   store: Store;
   github?: GithubClient;
+  google?: GoogleClient;
   clock?: Clock;
   pushSender?: PushSender;
 }
@@ -43,6 +45,7 @@ export class AppModule {
         { provide: CONFIG, useValue: deps.config },
         { provide: STORE, useValue: deps.store },
         { provide: GITHUB, useValue: deps.github ?? fetchGithubClient },
+        { provide: GOOGLE, useValue: deps.google ?? fetchGoogleClient },
         { provide: CLOCK, useValue: deps.clock ?? (() => new Date()) },
         AuthService,
         AuthGuard,

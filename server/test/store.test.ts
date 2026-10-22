@@ -92,6 +92,21 @@ function contract(name: string, setup: () => Promise<Store>) {
       expect(await store.findSolutionCandidates(['introuvablexyz'], 20)).toEqual([]);
     });
 
+    it('creates password accounts atomically and reports conflicts', async () => {
+      const first = await store.createPasswordUser({ login: 'Awa', email: 'awa@example.com', passwordHash: 'scrypt$x' });
+      expect('user' in first && first.user).toMatchObject({ login: 'Awa', provider: 'password', providerId: 'awa@example.com' });
+      expect(await store.createPasswordUser({ login: 'autre', email: 'awa@example.com', passwordHash: 'h' })).toEqual({ conflict: 'email' });
+      expect(await store.createPasswordUser({ login: 'AWA', email: 'autre@example.com', passwordHash: 'h' })).toEqual({ conflict: 'login' });
+      expect(await store.findCredential('awa@example.com')).toMatchObject({ passwordHash: 'scrypt$x' });
+      expect(await store.findCredential('inconnu@example.com')).toBeNull();
+      expect((await store.findUserByProvider('password', 'awa@example.com'))?.login).toBe('Awa');
+      expect(await store.findUserByProvider('google', 'awa@example.com')).toBeNull();
+
+      // Two sign-ups racing for the same e-mail: exactly one wins.
+      const race = await Promise.all([1, 2, 3].map((i) => store.createPasswordUser({ login: `course${i}`, email: 'course@example.com', passwordHash: 'h' })));
+      expect(race.filter((r) => 'user' in r)).toHaveLength(1);
+    });
+
     it('keeps community documents, finds users by login and lists helpers', async () => {
       const awa = await store.upsertUser({ provider: 'dev', providerId: 'awa', login: 'Awa', name: null, avatarUrl: null });
       expect((await store.findUserByLogin('awa'))?.id).toBe(awa.id);
@@ -126,7 +141,7 @@ describe.skipIf(!url)('PostgreSQL', () => {
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: url });
     await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-    expect(await migrate(pool)).toEqual(['001_init.sql', '002_radar_fiches.sql', '003_salle.sql', '004_community.sql']);
+    expect(await migrate(pool)).toEqual(['001_init.sql', '002_radar_fiches.sql', '003_salle.sql', '004_community.sql', '005_accounts.sql']);
     expect(await migrate(pool)).toEqual([]);
   });
   afterAll(async () => {
