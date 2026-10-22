@@ -3,7 +3,7 @@
 //
 //   node scripts/loadtest-ws.mjs http://localhost:4000 25
 //
-// Il faut un serveur avec le mode démo (SOS_DEV_AUTH=1). Les pseudos créés commencent par « charge- ».
+// Il crée de vrais comptes de test (charge-…@exemple.com) : à lancer sur un serveur de test.
 import { createRequire } from 'node:module';
 
 const require = createRequire(new URL('../server/package.json', import.meta.url));
@@ -69,8 +69,9 @@ const times = { accept: [], message: [] };
 const failures = [];
 
 async function pair(i) {
-  const asker = await call('POST', '/auth/dev', { login: `charge-d-${stamp}-${i}` });
-  const helper = await call('POST', '/auth/dev', { login: `charge-a-${stamp}-${i}` });
+  const account = (role) => call('POST', '/auth/signup', { email: `charge-${role}-${stamp}-${i}@exemple.com`, login: `charge-${role}-${stamp}-${i}`, password: `Charge de test ${stamp} ${i}` });
+  const asker = await account('d');
+  const helper = await account('a');
   const h = await connect(helper.token);
   const d = await connect(asker.token);
   try {

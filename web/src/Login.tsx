@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BadgeCheck, Eye, EyeOff, LifeBuoy, ShieldCheck, Users } from 'lucide-react';
 import type { PublicUser } from '@sos/shared';
-import { GITHUB_LOGIN_URL, GOOGLE_LOGIN_URL, authConfig, loginDev, loginWithPassword, signup } from './api.js';
+import { GITHUB_LOGIN_URL, GOOGLE_LOGIN_URL, authConfig, loginWithPassword, signup } from './api.js';
 import { Logo } from './Logo.js';
 import { Spinner, ThemeButton } from './ui.js';
 import { CodeScene } from './Visuals.js';
@@ -10,7 +10,6 @@ interface Methods {
   githubWeb: boolean;
   googleWeb: boolean;
   passwordAuth: boolean;
-  devAuth: boolean;
 }
 
 /** 0 to 4: a rough idea of how hard the password is to guess, shown while typing. */
@@ -33,13 +32,13 @@ export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string,
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [methods, setMethods] = useState<Methods>({ githubWeb: false, googleWeb: false, passwordAuth: true, devAuth: false });
+  const [methods, setMethods] = useState<Methods>({ githubWeb: false, googleWeb: false, passwordAuth: true });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     authConfig().then(
       (c) => {
-        setMethods({ githubWeb: c.githubWeb, googleWeb: c.googleWeb, passwordAuth: c.passwordAuth, devAuth: c.devAuth });
+        setMethods({ githubWeb: c.githubWeb, googleWeb: c.googleWeb, passwordAuth: c.passwordAuth });
         setLoaded(true);
       },
       () => setLoaded(true),
@@ -189,36 +188,13 @@ export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string,
 
           {error && <div className="card tint-rose tight" role="alert">{error}</div>}
 
-          {loaded && !methods.passwordAuth && !social && !methods.devAuth && (
+          {loaded && !methods.passwordAuth && !social && (
             <div className="card tint-rose">Aucune méthode de connexion n’est activée sur ce serveur.</div>
           )}
 
-          {methods.devAuth && <DemoLogin busy={busy} onEnter={(login) => void finish(() => loginDev(login))} />}
         </div>
       </section>
     </div>
-  );
-}
-
-/** Demo mode: a pseudo is enough. Only offered when the server allows it (never in production). */
-function DemoLogin({ busy, onEnter }: { busy: boolean; onEnter: (login: string) => void }) {
-  const [login, setLogin] = useState('');
-  return (
-    <details className="demo">
-      <summary>Mode démo (pour tester sans compte)</summary>
-      <form
-        className="row"
-        style={{ marginTop: 10 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (login.trim()) onEnter(login.trim());
-        }}
-      >
-        <input className="input" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Un pseudo" aria-label="Pseudo de démonstration" maxLength={39} />
-        <button type="submit" className="btn btn-ghost" disabled={busy || !login.trim()}>Entrer</button>
-      </form>
-      <p className="faint small" style={{ marginTop: 8 }}>Aucun mot de passe : n’importe quel pseudo est accepté.</p>
-    </details>
   );
 }
 

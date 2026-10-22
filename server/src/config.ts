@@ -45,7 +45,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     googleClientId: env.GOOGLE_CLIENT_ID || undefined,
     googleClientSecret: env.GOOGLE_CLIENT_SECRET || undefined,
     passwordAuth: env.SOS_PASSWORD_AUTH !== '0',
-    devAuth: env.SOS_DEV_AUTH !== undefined && env.SOS_DEV_AUTH !== '' ? env.SOS_DEV_AUTH === '1' : !production,
+    // Demo mode (a pseudo is enough) exists for local development and tests only: in production it is always off.
+    devAuth: !production && (env.SOS_DEV_AUTH !== undefined && env.SOS_DEV_AUTH !== '' ? env.SOS_DEV_AUTH === '1' : true),
     requestTtlHours: numberFrom(env.SOS_REQUEST_TTL_HOURS, 24, 1, 24),
     maxRequestsPerHour: numberFrom(env.SOS_MAX_REQUESTS_PER_HOUR, 3, 1, 1000),
     sessionTtlDays: 30,

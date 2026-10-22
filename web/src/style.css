@@ -2655,19 +2655,6 @@ svg {
 .meter i.on.s3 { background: #7bcf5a; }
 .meter i.on.s4 { background: var(--accent); }
 
-.demo {
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px dashed var(--line-strong);
-  font-size: 0.86rem;
-}
-
-.demo summary {
-  cursor: pointer;
-  color: var(--mute);
-  font-weight: 700;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { maskSecrets } from '@sos/shared';
+import { loadConfig } from '../src/config.js';
 import { payload, testApp } from './helpers.js';
 
 type Ctx = Awaited<ReturnType<typeof testApp>>;
@@ -43,6 +44,13 @@ describe('API SOS Dev', () => {
     it('rejects a token GitHub refuses', async () => {
       await http().post('/auth/github').send({ accessToken: 'bad' }).expect(401);
       await http().post('/auth/github').send({}).expect(400);
+    });
+
+    it('never offers the demo mode in production, whatever the environment says', () => {
+      expect(loadConfig({ NODE_ENV: 'production', SOS_DEV_AUTH: '1' }).devAuth).toBe(false);
+      expect(loadConfig({ NODE_ENV: 'production' }).devAuth).toBe(false);
+      expect(loadConfig({ NODE_ENV: 'development', SOS_DEV_AUTH: '1' }).devAuth).toBe(true);
+      expect(loadConfig({ NODE_ENV: 'development', SOS_DEV_AUTH: '0' }).devAuth).toBe(false);
     });
 
     it('supports the demo mode only when enabled', async () => {

@@ -20,12 +20,6 @@ async function call<T>(method: string, route: string, body?: unknown, token?: st
   return data as T;
 }
 
-export async function loginDev(login: string): Promise<SessionResponse> {
-  const session = await call<SessionResponse>('POST', '/auth/dev', { login });
-  localStorage.setItem(TOKEN_KEY, session.token);
-  return session;
-}
-
 export const authConfig = () =>
   call<{ githubClientId: string | null; devAuth: boolean; githubWeb: boolean; googleWeb: boolean; passwordAuth: boolean }>('GET', '/auth/config');
 

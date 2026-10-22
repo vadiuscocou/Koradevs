@@ -82,7 +82,7 @@ Dans le terminal : `/relance` pour relancer soi-même, `/resolu`, `/quitter` (ou
 
 `sos login` utilise le « device flow » de GitHub : le terminal affiche un code à saisir sur github.com, aucun mot de passe ne passe par le terminal. Il faut une OAuth App GitHub (Settings → Developer settings → OAuth Apps) avec **Enable Device Flow** coché, et mettre son Client ID dans `GITHUB_CLIENT_ID` (ce n'est pas un secret). Le serveur vérifie le jeton GitHub une fois, ne le garde pas, et donne à `sos` son propre jeton de session (stocké dans `~/.sos/config.json`, lisible par toi seul ; le serveur n'en garde que l'empreinte SHA-256).
 
-Le mode démo (`sos login --dev <pseudo>`) est actif par défaut hors production ; `SOS_DEV_AUTH=0` le coupe.
+Le mode démo (`sos login --dev <pseudo>`, sans mot de passe) n'existe que pour le développement local et les tests : **il est toujours coupé en production**, quelle que soit la configuration. Le site web ne le propose plus.
 
 ### Connexion GitHub sur le site
 
@@ -93,7 +93,7 @@ Le bouton « Continuer avec GitHub » demande une OAuth App GitHub (celle du ter
 3. **Authorization callback URL** : `<adresse du site>/api/auth/github/callback` (`http://localhost:5173/api/auth/github/callback` en local).
 4. **Generate a new client secret**, puis mets dans le serveur `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` et `SOS_WEB_URL` (l'adresse du site, sans `/` final).
 
-Sans `GITHUB_CLIENT_SECRET`, le bouton n'apparaît pas. Le secret ne doit jamais être commité. Une fois GitHub en place, mets `SOS_DEV_AUTH=0` pour couper la connexion par pseudo.
+Sans `GITHUB_CLIENT_SECRET`, le bouton n'apparaît pas. Le secret ne doit jamais être commité.
 
 ### Exécuter le code dans la salle
 
@@ -117,7 +117,7 @@ Quand un aidant prend une demande et que le demandeur a fermé la page, il reço
 node scripts/loadtest-ws.mjs http://localhost:4000 25
 ```
 
-Il faut le mode démo (`SOS_DEV_AUTH=1`). Au-delà de 25 paires, augmente la limite de connexions avec `SOS_AUTH_RATE_PER_MIN`.
+Il crée de vrais comptes de test (`charge-…@exemple.com`) : à lancer sur un serveur de test, pas sur la production. Au-delà de 25 paires, augmente la limite de connexions avec `SOS_AUTH_RATE_PER_MIN`.
 
 ### Comptes : e-mail, GitHub, Google
 
@@ -133,7 +133,6 @@ Le site propose trois façons d'entrer, sans mode démo :
 
 Chaque personne a un **pseudo unique** (insensible à la casse) : si GitHub ou Google propose un pseudo déjà pris, il devient `Awa-Diop-2`. Un même e-mail utilisé avec deux méthodes donne deux comptes séparés. Pas encore de vérification d'e-mail ni de « mot de passe oublié » : il faut pour cela un service d'envoi d'e-mails (SMTP).
 
-Une fois les vraies connexions en place, mets `SOS_DEV_AUTH=0` pour supprimer le mode démo.
 
 ### API
 
