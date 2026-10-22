@@ -9,6 +9,7 @@ import type { AppConfig } from '../config.js';
 import type { Store, StoredRequest, User } from '../store/types.js';
 import { CLOCK, CONFIG, STORE, type Clock } from '../tokens.js';
 import { SalleService, type SalleConnection } from '../salle/salle.service.js';
+import { PushService } from '../push/push.service.js';
 
 const ClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('auth'), token: z.string().min(1).max(200) }),
@@ -40,7 +41,9 @@ const ClientMessageSchema = z.discriminatedUnion('type', [
     cause: z.string().trim().min(1).max(1500).optional(),
     fix: z.string().trim().min(1).max(3000).optional(),
     testOk: z.boolean().optional(),
+    includeDiff: z.boolean().optional(),
   }),
+  z.object({ type: z.literal('resultat'), requestId: z.string().uuid(), ok: z.boolean(), output: z.string().max(20_000), path: z.string().max(500).optional() }),
 ]);
 
 interface Connection extends SalleConnection {
@@ -80,6 +83,7 @@ export class RadarService implements OnApplicationBootstrap, BeforeApplicationSh
     @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(CLOCK) private readonly now: Clock,
     @Inject(SalleService) private readonly salle: SalleService,
+    @Inject(PushService) private readonly push: PushService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -277,9 +281,23 @@ export class RadarService implements OnApplicationBootstrap, BeforeApplicationSh
     const requester = await this.store.getUser(accepted.userId);
     c.sent.delete(requestId);
     this.send(c, { type: 'prise', requestId, requester: publicUser(requester!) });
+    let requesterNotified = false;
     for (const other of this.connections) {
-      if (other.watching.delete(requestId)) this.send(other, { type: 'acceptee', requestId, helper: publicUser(helper) });
+      if (other.watching.delete(requestId)) {
+        this.send(other, { type: 'acceptee', requestId, helper: publicUser(helper) });
+        requesterNotified = true;
+      }
       if (other !== c && other.sent.delete(requestId)) this.send(other, { type: 'retirer', requestId, raison: 'prise' });
+    }
+    // Nobody is watching the request (the requester closed the page): reach their phone or computer instead.
+    if (!requesterNotified) {
+      void this.push
+        .notify(accepted.userId, {
+          title: `@${helper.login} t’attend dans la salle`,
+          body: errorSummary(accepted.payload.output) || 'Ton aidant est arrivé.',
+          url: `${this.config.webUrl}/#/salle/${requestId}`,
+        })
+        .catch((e: unknown) => this.logger.warn(`Notification impossible : ${String(e)}`));
     }
     this.lastStatus.delete(requestId);
     this.logger.log(`${helper.login} a pris la demande ${requestId.slice(0, 8)} de ${requester?.login}`);

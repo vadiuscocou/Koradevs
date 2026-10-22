@@ -56,6 +56,14 @@ export class CommunityController {
     return this.community.stats();
   }
 
+  /** Public: the before/after of a fiche (only exists if the requester agreed to publish it). */
+  @Get('replay/:solutionId')
+  async replay(@Param('solutionId') solutionId: string) {
+    const replay = await this.community.getReplay(solutionId);
+    if (!replay) throw new NotFoundException('Pas d’avant / après pour cette fiche.');
+    return replay;
+  }
+
   @Get('confirmed')
   confirmed() {
     return this.community.confirmedSolutionIds();

@@ -6,6 +6,7 @@ import {
   maskSecrets,
   type ChatMessage,
   type PublicUser,
+  type RunResult,
   type SalleClient,
   type SalleMember,
   type SalleRole,
@@ -51,6 +52,11 @@ interface Room {
   ficheValidatedHelper: boolean;
   /** The requester says their program is green again (or the terminal saw exit code 0). */
   testOk: boolean;
+  lastRun: RunResult | null;
+  /** The shared files as they were when the room opened (already masked). */
+  initialFiles: Map<string, string>;
+  /** The requester agreed to publish the before/after with the fiche. */
+  includeDiff: boolean;
 }
 
 const MAX_CHAT = 500;
@@ -145,6 +151,18 @@ export class SalleService {
       case 'reponse-relance':
         if (!fromTerminal) return;
         return this.say(room, 'SOS', 'systeme', message.accepted ? 'Relance autorisée.' : 'Relance refusée par le demandeur.');
+      case 'resultat': {
+        // The code ran in the sender's browser sandbox. Only the requester's green run counts as a confirmed test:
+        // it is their own program, on their own screen, not a claim made by the helper.
+        const ok = message.ok === true;
+        const output = mask(String(message.output ?? '')).slice(0, 20_000);
+        const path = message.path ? mask(String(message.path)).slice(0, 500) : undefined;
+        const run: RunResult = { by: login, role: member.role, ok, output, ...(path ? { path } : {}) };
+        room.lastRun = run;
+        if (ok && member.role === 'demandeur') room.testOk = true;
+        this.broadcast(room, { type: 'resultat', requestId: room.requestId, ...run });
+        return this.say(room, 'SOS', 'systeme', `@${login} a exécuté ${path ?? 'le code'} : ${ok ? '✔ réussi' : '✗ erreur'}.`);
+      }
       case 'proposer-fiche': {
         const error = String(message.error);
         const cause = String(message.cause);
@@ -156,6 +174,7 @@ export class SalleService {
         if (member.role === 'demandeur') {
           room.ficheValidatedRequester = true;
           if (message.testOk === true) room.testOk = true;
+          if (message.includeDiff === true) room.includeDiff = true;
         }
         if (member.role === 'aidant') room.ficheValidatedHelper = true;
         
@@ -168,8 +187,10 @@ export class SalleService {
         if (room.ficheValidatedRequester && room.ficheValidatedHelper && room.ficheDraft) {
           const solutionId = randomUUID();
           const title = room.errorSummary || 'Problème résolu';
+          const replay = room.includeDiff ? this.replayOf(room) : [];
           void this.store
             .seedSolutions([{ id: solutionId, title, error: room.ficheDraft.error, cause: room.ficheDraft.cause, fix: room.ficheDraft.fix, tech: room.tech }])
+            .then(() => this.community.saveReplay(solutionId, replay))
             .then(() =>
               this.community.recordProof({ helper: room.helper.login, solutionId, title, tech: room.tech, testPassed: room.testOk || room.lastExitCode === 0 }),
             )
@@ -241,9 +262,22 @@ export class SalleService {
       ficheValidatedRequester: false,
       ficheValidatedHelper: false,
       testOk: false,
+      lastRun: null,
+      initialFiles: new Map(request.payload.files.map((f) => [f.path, f.content])),
+      includeDiff: false,
     };
     this.rooms.set(request.id, room);
     return room;
+  }
+
+  /** Before/after of every shared file that changed, masked a second time before being published. */
+  private replayOf(room: Room): Array<{ path: string; before: string; after: string }> {
+    const files: Array<{ path: string; before: string; after: string }> = [];
+    for (const [path, before] of room.initialFiles) {
+      const after = room.doc.getText(path).toString();
+      if (after !== before) files.push({ path, before: mask(before).slice(0, 100_000), after: mask(after).slice(0, 100_000) });
+    }
+    return files;
   }
 
   private stateOf(room: Room, role: SalleRole): SalleState {
@@ -261,6 +295,8 @@ export class SalleService {
       terminal: room.terminal,
       running: room.running,
       lastExitCode: room.lastExitCode,
+      testOk: room.testOk,
+      lastRun: room.lastRun,
       members: this.membersOf(room),
       url: `${this.config.webUrl}/#/salle/${room.requestId}`,
       expiresAt: room.expiresAt.toISOString(),

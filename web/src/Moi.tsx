@@ -3,6 +3,7 @@ import { DoorClosed, DoorOpen, LogOut, MapPin, Pencil } from 'lucide-react';
 import { KNOWN_TECH } from '@sos/shared';
 import { getPassport, updateCommunityProfile, type Passport } from './api.js';
 import type { Shared } from './App.js';
+import { NotifySetting } from './Notifications.js';
 import { PasseportCard } from './Passeport.js';
 import { Avatar, Badge, Skeletons, Spinner, Switch, ThemeButton, useToast } from './ui.js';
 
@@ -121,6 +122,10 @@ export function Moi({ shared, dark, toggleTheme, onLogout }: { shared: Shared; d
             )}
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <NotifySetting token={token} />
       </section>
 
       <section>

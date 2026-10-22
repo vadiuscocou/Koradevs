@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BadgeCheck, Copy, Fingerprint, MapPin, Printer, Share2 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { ArrowLeft, BadgeCheck, Copy, Fingerprint, MapPin, Printer, Share2, ShieldCheck, ShieldX } from 'lucide-react';
 import { getPassport, type Passport } from './api.js';
 import { Logo } from './Logo.js';
+import { verifyPassport } from './verify.js';
 import { Badge, Empty, Spinner, ThemeButton, copyText, shareWhatsApp, timeAgo, useToast } from './ui.js';
 
 export const passportUrl = (login: string) => `${location.origin}${location.pathname}#/passeport/${encodeURIComponent(login)}`;
@@ -11,6 +13,13 @@ export function PasseportCard({ passport }: { passport: Passport }) {
   const toast = useToast();
   const green = passport.proofs.filter((p) => p.testPassed).length;
   const place = [passport.city, passport.country].filter(Boolean).join(', ');
+  const [qr, setQr] = useState('');
+  const [verdict, setVerdict] = useState<'idle' | 'ok' | 'ko'>('idle');
+
+  useEffect(() => {
+    setVerdict('idle');
+    QRCode.toString(passportUrl(passport.login), { type: 'svg', margin: 1, width: 132, color: { dark: '#0b1712', light: '#ffffff' } }).then(setQr, () => setQr(''));
+  }, [passport.login, passport.hash]);
 
   return (
     <div className="col" style={{ gap: 18 }}>
@@ -42,6 +51,21 @@ export function PasseportCard({ passport }: { passport: Passport }) {
           <Fingerprint size={15} /> Empreinte SHA-256 du contenu
         </div>
         <code className="hash">{passport.hash}</code>
+
+        <div className="verify">
+          {qr && <div className="qr" role="img" aria-label="QR code vers ce Passeport" dangerouslySetInnerHTML={{ __html: qr }} />}
+          <div className="grow">
+            <strong>Vérifie-le toi-même</strong>
+            <div className="small" style={{ color: 'rgba(255,255,255,.72)', margin: '4px 0 10px' }}>
+              Scanne le code, ou recalcule l’empreinte dans ton navigateur : personne n’a besoin de croire le serveur sur parole.
+            </div>
+            <button type="button" className="btn btn-neon btn-sm no-print" onClick={async () => setVerdict((await verifyPassport(passport as never)) ? 'ok' : 'ko')}>
+              <Fingerprint size={14} /> Vérifier l’empreinte
+            </button>
+            {verdict === 'ok' && <div className="verdict ok"><ShieldCheck size={16} /> Empreinte recalculée : le Passeport est authentique.</div>}
+            {verdict === 'ko' && <div className="verdict ko"><ShieldX size={16} /> L’empreinte ne correspond pas : ce Passeport a été modifié.</div>}
+          </div>
+        </div>
       </section>
 
       <section className="card">

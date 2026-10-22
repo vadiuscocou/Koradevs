@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, Send, ShieldCheck, X } from 'lu
 import { KNOWN_TECH, detectTech, errorSummary, maskSecrets, type SolutionHit, type SosRequest } from '@sos/shared';
 import { cancelRequest, createWebRequest, searchSolutions } from './api.js';
 import type { Shared } from './App.js';
+import { NotifyButton } from './Notifications.js';
 import { Badge, Spinner, useToast } from './ui.js';
 
 const MAX_BYTES = 150 * 1024;
@@ -295,6 +296,7 @@ export function DemanderAide({ shared }: { shared: Shared }) {
               Aucun aidant n’est connecté en ce moment. Ta demande reste ouverte : garde cette page ouverte, ou réessaie plus tard.
             </div>
           )}
+          <NotifyButton token={token} />
           <div className="card tight small" style={{ maxWidth: 460, textAlign: 'left' }}>
             <strong>Tu peux fermer cette page.</strong>
             <div className="muted">

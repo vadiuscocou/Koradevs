@@ -71,6 +71,12 @@ export interface ProofDoc {
   at: string;
 }
 
+export interface ReplayFile {
+  path: string;
+  before: string;
+  after: string;
+}
+
 export interface Passport {
   login: string;
   city: string;
@@ -183,6 +189,15 @@ export class CommunityService {
       proofs,
     };
     return { ...body, hash: passportHash(body) };
+  }
+
+  /** The « avant / après » of a fiche, only when the requester agreed to publish it. */
+  async saveReplay(solutionId: string, files: ReplayFile[]): Promise<void> {
+    if (files.length > 0) await this.store.putDoc('replay', solutionId, { solutionId, files });
+  }
+
+  async getReplay(solutionId: string): Promise<{ solutionId: string; files: ReplayFile[] } | null> {
+    return this.store.getDoc('replay', solutionId);
   }
 
   /** Ids of the sheets whose test ran green: only these get the « Confirmé » badge. */

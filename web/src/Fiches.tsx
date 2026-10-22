@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, Copy, Flag, Search, Share2 } from 'lucide-react';
 import type { SolutionHit } from '@sos/shared';
-import { getConfirmedIds, getRecentSolutions, searchSolutions } from './api.js';
+import { getConfirmedIds, getRecentSolutions, getReplay, searchSolutions, type ReplayFile } from './api.js';
+import { Replay } from './Replay.js';
 import type { Shared } from './App.js';
 import { SignalerModal } from './SignalerModal.js';
 import { Badge, Empty, Skeletons, copyText, shareWhatsApp, useDebounced, useToast } from './ui.js';
@@ -15,6 +16,20 @@ export function Fiches({ shared, initialQuery, initialOpen }: { shared: Shared; 
   const [open, setOpen] = useState<SolutionHit | null>(initialOpen);
   const [reporting, setReporting] = useState(false);
   const debounced = useDebounced(query);
+  const [replay, setReplay] = useState<ReplayFile[] | null>(null);
+
+  useEffect(() => {
+    setReplay(null);
+    if (!open) return undefined;
+    let alive = true;
+    getReplay(open.id).then(
+      (r) => alive && setReplay(r.files),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     getConfirmedIds().then((ids) => setConfirmed(new Set(ids)), () => undefined);
@@ -70,6 +85,8 @@ export function Fiches({ shared, initialQuery, initialOpen }: { shared: Shared; 
           <div className="block-label" style={{ color: 'var(--mint-fg)' }}>Correction</div>
           <p style={{ whiteSpace: 'pre-wrap' }}>{open.fix}</p>
         </section>
+
+        {replay && replay.length > 0 && <Replay files={replay} />}
 
         <div className="row wrap">
           <button

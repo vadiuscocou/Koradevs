@@ -95,6 +95,30 @@ Le bouton « Continuer avec GitHub » demande une OAuth App GitHub (celle du ter
 
 Sans `GITHUB_CLIENT_SECRET`, le bouton n'apparaît pas. Le secret ne doit jamais être commité. Une fois GitHub en place, mets `SOS_DEV_AUTH=0` pour couper la connexion par pseudo.
 
+### Exécuter le code dans la salle
+
+Le bouton **Exécuter** lance le fichier JavaScript partagé dans un espace isolé du navigateur (`iframe sandbox="allow-scripts"` : ni cookies, ni stockage, ni accès à la page ; 5 secondes au plus). On peut ajouter un appel à tester, par exemple `greet({ name: 'awa' })`. Le résultat est partagé avec l'autre personne. **Seul un résultat vert lancé par le demandeur confirme le test** : l'aidant ne peut pas se confirmer lui-même. Le serveur n'exécute jamais de code.
+
+### Avant / après d'une fiche
+
+À la validation de la fiche, le demandeur peut cocher « Publier l'avant / après ». La fiche affiche alors la correction ligne par ligne, et on peut la rejouer. Sans cette case, aucun code n'est publié.
+
+### Passeport vérifiable
+
+Le Passeport public (`#/passeport/<pseudo>`) porte un QR code et un bouton « Vérifier l'empreinte » qui recalcule le SHA-256 dans le navigateur.
+
+### Notifications
+
+Quand un aidant prend une demande et que le demandeur a fermé la page, il reçoit une notification Web Push sur son téléphone ou son ordinateur. Rien à configurer : les clés VAPID sont créées au premier lancement et gardées en base. Le site est aussi installable (manifeste + service worker).
+
+### Test de charge
+
+```bash
+node scripts/loadtest-ws.mjs http://localhost:4000 25
+```
+
+Il faut le mode démo (`SOS_DEV_AUTH=1`). Au-delà de 25 paires, augmente la limite de connexions avec `SOS_AUTH_RATE_PER_MIN`.
+
 ### API
 
 | Route | Rôle |

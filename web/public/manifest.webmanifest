@@ -1,0 +1,14 @@
+{
+  "name": "KoraDevs",
+  "short_name": "KoraDevs",
+  "description": "Quand tu bloques, un développeur te rejoint en direct.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1712",
+  "theme_color": "#0f3d2a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

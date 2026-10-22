@@ -3,6 +3,7 @@ import { createApp } from '../src/app.js';
 import { GithubApiError, type GithubClient } from '../src/auth/github.js';
 import { loadConfig, type AppConfig } from '../src/config.js';
 import { MemoryStore } from '../src/store/memory.js';
+import type { PushSender } from '../src/tokens.js';
 
 export function payload(overrides: Partial<SosRequest> = {}): SosRequest {
   return {
@@ -31,7 +32,7 @@ export const fakeGithub: GithubClient = {
   },
 };
 
-export async function testApp(config: Partial<AppConfig> = {}) {
+export async function testApp(config: Partial<AppConfig> = {}, extras: { pushSender?: PushSender } = {}) {
   const clock = { now: new Date('2026-10-08T10:00:00.000Z') };
   const store = new MemoryStore();
   const app = await createApp(
@@ -40,6 +41,7 @@ export async function testApp(config: Partial<AppConfig> = {}) {
       store,
       github: fakeGithub,
       clock: () => clock.now,
+      pushSender: extras.pushSender ?? (async () => undefined),
     },
     false,
   );

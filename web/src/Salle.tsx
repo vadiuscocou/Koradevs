@@ -7,9 +7,10 @@ import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { yCollab } from 'y-codemirror.next';
 import * as Y from 'yjs';
-import { ArrowLeft, CircleCheck, CircleX, Code2, MessageSquare, Send, Terminal } from 'lucide-react';
-import type { ChatMessage, PublicUser, SalleMember, SalleState, ServerMessage } from '@sos/shared';
+import { ArrowLeft, CircleCheck, CircleX, Code2, MessageSquare, Play, Send, Terminal } from 'lucide-react';
+import type { ChatMessage, PublicUser, RunResult, SalleMember, SalleState, ServerMessage } from '@sos/shared';
 import { connectRadar } from './api.js';
+import { isRunnable, runInSandbox } from './sandbox.js';
 import { Avatar, Badge, Modal, Spinner } from './ui.js';
 
 const REMOTE = 'serveur';
@@ -75,6 +76,10 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const [fiche, setFiche] = useState({ error: '', cause: '', fix: '' });
   const [testOk, setTestOk] = useState(false);
   const [mine, setMine] = useState(false);
+  const [lastRun, setLastRun] = useState<RunResult | null>(null);
+  const [runBusy, setRunBusy] = useState(false);
+  const [expr, setExpr] = useState('');
+  const [includeDiff, setIncludeDiff] = useState(false);
   const [theirs, setTheirs] = useState(false);
   const socket = useRef<ReturnType<typeof connectRadar> | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
@@ -103,6 +108,8 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           setExitCode(m.salle.lastExitCode);
           setExecSeen(m.salle.members.some((x) => x.client === 'terminal') && m.salle.lastExitCode !== null);
           setMembers(m.salle.members);
+          setLastRun(m.salle.lastRun);
+          setTestOk((t) => t || m.salle.testOk);
           setFiche((f) => (f.error ? f : { ...f, error: m.salle.errorSummary }));
           setError('');
           return;
@@ -119,6 +126,10 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           setExecSeen(true);
           if (m.state === 'en-cours') setTerminal('');
           else setExitCode(m.exitCode);
+          return;
+        case 'resultat':
+          setLastRun({ by: m.by, role: m.role, ok: m.ok, output: m.output, ...(m.path ? { path: m.path } : {}) });
+          if (m.ok && m.role === 'demandeur') setTestOk(true);
           return;
         case 'presence':
           return setMembers(m.members);
@@ -203,6 +214,17 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
     setDraft('');
   };
 
+  const runnable = !!current && isRunnable(current.path);
+  const run = async () => {
+    if (!current || !runnable || runBusy) return;
+    setRunBusy(true);
+    const source = doc.getText(current.path).toString();
+    const test = expr.trim() ? `\n;console.log(${expr.trim().replace(/;+$/, '')});` : '';
+    const result = await runInSandbox(source + test);
+    socket.current?.send({ type: 'resultat', requestId, ok: result.ok, output: result.output, path: current.path });
+    setRunBusy(false);
+  };
+
   const canValidate = fiche.error.trim() && fiche.cause.trim() && fiche.fix.trim();
 
   return (
@@ -241,11 +263,11 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         </div>
 
         <aside className="salle-side">
-          <div className={`test-box ${running ? '' : shownExit === 0 || testOk ? 'ok' : shownExit !== null ? 'ko' : ''}`}>
+          <div className={`test-box ${running ? '' : shownExit === 0 || testOk ? 'ok pop' : shownExit !== null ? 'ko' : ''}`}>
             <div className="row" style={{ gap: 8 }}>
               {running ? <Spinner size={16} /> : shownExit === 0 || testOk ? <CircleCheck size={18} color="var(--neon)" /> : shownExit !== null ? <CircleX size={18} color="#ff8f80" /> : <Terminal size={18} color="#8aa095" />}
               <strong style={{ fontSize: '0.9rem' }}>
-                {running ? 'Test en cours…' : shownExit === 0 ? 'Le programme repasse au vert' : testOk ? 'Test confirmé par le demandeur' : shownExit !== null ? `Le programme échoue encore (code ${shownExit})` : 'Pas encore de test'}
+                {running ? 'Test en cours…' : shownExit === 0 ? 'Le programme repasse au vert' : testOk ? (lastRun?.ok && lastRun.role === 'demandeur' ? 'Test confirmé : le code s’exécute sans erreur' : 'Test confirmé par le demandeur') : shownExit !== null ? `Le programme échoue encore (code ${shownExit})` : 'Pas encore de test'}
               </strong>
             </div>
             {!hasTerminal && !isHelper && shownExit !== 0 && (
@@ -255,6 +277,26 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
               </label>
             )}
             {!hasTerminal && isHelper && !testOk && <div className="small" style={{ color: '#8aa095', marginTop: 6 }}>Le demandeur confirme quand son programme fonctionne.</div>}
+          </div>
+
+          <div className="run-box">
+            <div className="row between">
+              <strong style={{ fontSize: '0.88rem' }}>Exécuter le code</strong>
+              <button type="button" className="btn btn-neon btn-sm" onClick={() => void run()} disabled={!runnable || runBusy}>
+                {runBusy ? <Spinner size={14} /> : <Play size={14} />} Exécuter
+              </button>
+            </div>
+            {runnable ? (
+              <input className="expr mono" value={expr} onChange={(e) => setExpr(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void run()} placeholder="Appel à tester, ex. greet({ name: 'awa' })" aria-label="Expression à tester" />
+            ) : (
+              <div className="small" style={{ color: '#8aa095' }}>L’exécution fonctionne pour les fichiers JavaScript (.js). Le code tourne dans un espace isolé de ton navigateur.</div>
+            )}
+            {lastRun && (
+              <div className={`run-out ${lastRun.ok ? 'ok' : 'ko'}`}>
+                <div className="small" style={{ opacity: 0.85 }}>@{lastRun.by} · {lastRun.ok ? '✔ réussi' : '✗ erreur'}{lastRun.path ? ` · ${lastRun.path}` : ''}</div>
+                <pre className="mono">{lastRun.output || '(aucune sortie)'}</pre>
+              </div>
+            )}
           </div>
 
           {!hasTerminal && terminal.trim() && (
@@ -296,7 +338,7 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
       </footer>
 
       {ficheOpen && (
-        <Modal title="Fiche solution" subtitle="Publiée dans la bibliothèque seulement si vous validez tous les deux. Aucun code personnel n’y figure." onClose={() => setFicheOpen(false)}>
+        <Modal title="Fiche solution" subtitle="Publiée dans la bibliothèque seulement si vous validez tous les deux. Ton code n’y figure que si tu coches l’avant / après." onClose={() => setFicheOpen(false)}>
           <form
             className="col"
             style={{ gap: 14 }}
@@ -304,7 +346,7 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
               e.preventDefault();
               if (!canValidate || mine) return;
               setMine(true);
-              socket.current?.send({ type: 'valider-fiche', requestId, ...fiche, testOk: !isHelper && testOk });
+              socket.current?.send({ type: 'valider-fiche', requestId, ...fiche, testOk: !isHelper && testOk, includeDiff: !isHelper && includeDiff });
             }}
           >
             <label className="field">
@@ -323,6 +365,12 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
               <label className="row small" style={{ gap: 8 }}>
                 <input type="checkbox" checked={testOk} onChange={(e) => setTestOk(e.target.checked)} disabled={mine} />
                 Mon programme fonctionne : la fiche aura le badge <Badge tone="mint">Confirmé</Badge>
+              </label>
+            )}
+            {!isHelper && (
+              <label className="row small" style={{ gap: 8, alignItems: 'flex-start' }}>
+                <input type="checkbox" checked={includeDiff} onChange={(e) => setIncludeDiff(e.target.checked)} disabled={mine} style={{ marginTop: 3 }} />
+                <span>Publier aussi l’<b>avant / après</b> du code (les secrets restent masqués). Les lecteurs pourront rejouer la correction.</span>
               </label>
             )}
             {theirs && !mine && <div className="card tint-mint tight small">@{other.login} a déjà validé. Valide à ton tour pour publier.</div>}

@@ -3,6 +3,7 @@ import { ArrowRight, BellRing, BookOpen, Check, Clock, DoorOpen, LifeBuoy, Radio
 import type { SolutionHit } from '@sos/shared';
 import { cancelRequest, getConfirmedIds, getNeighbors, getRecentSolutions, getStats, ringNeighbor, type CommunityProfile } from './api.js';
 import type { Shared } from './App.js';
+import { NotifyButton } from './Notifications.js';
 import { Avatar, Badge, Empty, Skeletons, timeAgo, useToast } from './ui.js';
 
 export function Accueil({ shared }: { shared: Shared }) {
@@ -146,6 +147,11 @@ export function Accueil({ shared }: { shared: Shared }) {
               </div>
             ))}
           </div>
+          {mine.some((r) => r.status === 'ouverte') && (
+            <div style={{ marginTop: 12 }}>
+              <NotifyButton token={token} />
+            </div>
+          )}
         </section>
       )}
 

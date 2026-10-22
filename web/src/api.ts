@@ -164,3 +164,20 @@ export function connectRadar(token: string, onMessage: (m: ServerMessage) => voi
 }
 
 export type Radar = ReturnType<typeof connectRadar>;
+
+// --- Avant / après d'une fiche ---------------------------------------------
+
+export interface ReplayFile {
+  path: string;
+  before: string;
+  after: string;
+}
+
+export const getReplay = (solutionId: string) => call<{ solutionId: string; files: ReplayFile[] }>('GET', `/community/replay/${encodeURIComponent(solutionId)}`);
+
+// --- Notifications Web Push -------------------------------------------------
+
+export const getPushKey = () => call<{ publicKey: string }>('GET', '/push/key');
+export const savePushSubscription = (token: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+  call<void>('POST', '/push/subscribe', subscription, token);
+export const deletePushSubscription = (token: string, endpoint: string) => call<void>('DELETE', '/push/subscribe', { endpoint }, token);

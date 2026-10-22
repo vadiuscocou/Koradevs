@@ -95,7 +95,9 @@ export type ClientMessage =
   | { type: 'reponse'; requestId: string; path: string; accepted: boolean; reason?: string }
   | { type: 'reponse-relance'; requestId: string; accepted: boolean }
   | { type: 'proposer-fiche'; requestId: string; error: string; cause: string; fix: string }
-  | { type: 'valider-fiche'; requestId: string; error?: string; cause?: string; fix?: string; testOk?: boolean };
+  | { type: 'valider-fiche'; requestId: string; error?: string; cause?: string; fix?: string; testOk?: boolean; includeDiff?: boolean }
+  // Result of a run done in the sender's browser sandbox (the server never runs code).
+  | { type: 'resultat'; requestId: string; ok: boolean; output: string; path?: string };
 
 export type ServerMessage =
   | { type: 'bienvenue'; user: PublicUser }
@@ -117,7 +119,8 @@ export type ServerMessage =
   | { type: 'salle-fermee'; requestId: string; raison: 'resolue' | 'annulee' | 'expiree'; by?: string }
   | { type: 'fiche-proposee'; requestId: string; by: string; error: string; cause: string; fix: string }
   | { type: 'fiche-validee'; requestId: string; by: string }
-  | { type: 'sonnette'; from: string };
+  | { type: 'sonnette'; from: string }
+  | ({ type: 'resultat'; requestId: string } & RunResult);
 
 /** `terminal` = the `sos` command on the requester's machine; `web` = the browser. */
 export type SalleClient = 'terminal' | 'web';
@@ -143,6 +146,16 @@ export interface SalleFile {
   line?: number;
 }
 
+/** A run of the shared code, done in a browser sandbox by one of the two people. */
+export interface RunResult {
+  by: string;
+  role: SalleRole;
+  ok: boolean;
+  /** Console output and errors, already masked. */
+  output: string;
+  path?: string;
+}
+
 export interface SalleState {
   requestId: string;
   role: SalleRole;
@@ -160,6 +173,9 @@ export interface SalleState {
   terminal: string;
   running: boolean;
   lastExitCode: number | null;
+  /** The requester ran their code in the sandbox and it succeeded (or checked it by hand). */
+  testOk: boolean;
+  lastRun: RunResult | null;
   members: SalleMember[];
   /** Web page of the room. */
   url: string;

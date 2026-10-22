@@ -21,13 +21,16 @@ import { CommunityController } from './community/community.controller.js';
 import { CommunityService } from './community/community.service.js';
 import { authRateLimit, securityHeaders } from './security.js';
 import type { Store } from './store/types.js';
-import { CLOCK, CONFIG, GITHUB, STORE, type Clock } from './tokens.js';
+import { PushController } from './push/push.controller.js';
+import { PushService, webPushSender } from './push/push.service.js';
+import { CLOCK, CONFIG, GITHUB, PUSH_SENDER, STORE, type Clock, type PushSender } from './tokens.js';
 
 export interface AppDeps {
   config: AppConfig;
   store: Store;
   github?: GithubClient;
   clock?: Clock;
+  pushSender?: PushSender;
 }
 
 @Module({})
@@ -35,7 +38,7 @@ export class AppModule {
   static forRoot(deps: AppDeps): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, RequestsController, SolutionsController, CommunityController],
+      controllers: [HealthController, AuthController, RequestsController, SolutionsController, CommunityController, PushController],
       providers: [
         { provide: CONFIG, useValue: deps.config },
         { provide: STORE, useValue: deps.store },
@@ -49,6 +52,8 @@ export class AppModule {
         SalleService,
         SolutionsService,
         CommunityService,
+        PushService,
+        { provide: PUSH_SENDER, useValue: deps.pushSender ?? webPushSender },
       ],
     };
   }
@@ -61,7 +66,7 @@ export async function createApp(deps: AppDeps, logger: LogLevel[] | false = ['er
   // Behind Render or Nginx: the real client address is the first proxy hop.
   app.set('trust proxy', 1);
   app.use(securityHeaders);
-  app.use(authRateLimit());
+  app.use(authRateLimit(Number(process.env.SOS_AUTH_RATE_PER_MIN) || 60));
   if (deps.config.serveWeb) serveWeb(app);
   app.enableShutdownHooks();
   return app;
