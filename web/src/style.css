@@ -2962,36 +2962,65 @@ svg {
 }
 
 /* ==========================================================================
-   Identité forte : papier chaud, traits d'encre, ombres franches, titres en serif
+   Identité afrofuturiste : nuit profonde, or, magenta, lueurs et dégradés
    ========================================================================== */
 
 :root {
-  --bg: #f5ecda;
-  --bg-soft: #ede1c8;
-  --surface: #fffaf0;
-  --surface-2: #faf2e1;
-  --ink: #14110c;
-  --ink-2: #3a3326;
-  --mute: #5a513f;
-  --faint: #655b46;
-  --line: #d9c9a6;
-  --line-strong: #14110c;
-  --ochre: #e9a31c;
-  --clay: #c8512b;
-  --shadow-sm: 2px 2px 0 var(--ink);
-  --shadow: 4px 4px 0 var(--ink);
-  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --bg: #fbf5ff;
+  --bg-soft: #f1e6fb;
+  --surface: #ffffff;
+  --surface-2: #f8f0ff;
+  --ink: #1a0b2e;
+  --ink-2: #3b2759;
+  --mute: #5b4a78;
+  --faint: #66557f;
+  --line: #e4d4f4;
+  --line-strong: #cdb5e8;
+  --brand: #3b0f6e;
+  --brand-2: #5a1aa3;
+  --accent: #c01a63;
+  --link: #a3125a;
+  --neon: #ffc83d;
+  --gold: #ffc83d;
+  --magenta: #ff3d81;
+  --cyan: #2fe0d0;
+  --mint-bg: #ffeec2;
+  --mint-fg: #7a4d00;
+  --ring: 0 0 0 3px rgba(192, 26, 99, 0.3);
+  --shadow-sm: 0 1px 2px rgba(59, 15, 110, 0.08);
+  --shadow: 0 10px 30px rgba(59, 15, 110, 0.12);
+  --display: 'Space Grotesk', var(--font);
 }
 
 [data-theme='dark'] {
-  --bg: #0d0f0c;
-  --bg-soft: #14170f;
-  --surface: #161a13;
-  --surface-2: #1b2016;
-  --line: #2a3022;
-  --line-strong: #5f6a4c;
-  --shadow-sm: 2px 2px 0 #000;
-  --shadow: 4px 4px 0 #000;
+  --bg: #0a0614;
+  --bg-soft: #120a22;
+  --surface: #150d27;
+  --surface-2: #1b1131;
+  --ink: #f6efff;
+  --ink-2: #d6c6ee;
+  --mute: #a897c4;
+  --faint: #9d8cba;
+  --line: #2a1d45;
+  --line-strong: #3d2b63;
+  --brand: #5a1aa3;
+  --brand-2: #7a2ad0;
+  --accent: #ff4d94;
+  --link: #ff8fbd;
+  --neon: #ffc83d;
+  --mint-bg: rgba(255, 200, 61, 0.14);
+  --mint-fg: #ffd978;
+  --ring: 0 0 0 3px rgba(255, 77, 148, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(255, 61, 129, 0.16), transparent 70%),
+    radial-gradient(700px 500px at -10% 110%, rgba(47, 224, 208, 0.12), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 h1,
@@ -3000,109 +3029,91 @@ h2,
 .hero h1,
 .stat-tile b {
   font-family: var(--display);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.035em;
 }
 
 .card,
 .stat-tile,
-.alert-card,
-.modal,
-.toast {
-  border: 1.5px solid var(--line-strong);
-  box-shadow: var(--shadow-sm);
+.alert-card {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, rgba(255, 61, 129, 0.55), rgba(255, 200, 61, 0.5) 50%, rgba(47, 224, 208, 0.45)) border-box;
 }
 
 .card.interactive:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0 var(--ink);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(255, 61, 129, 0.22);
 }
 
-[data-theme='dark'] .card.interactive:hover {
-  box-shadow: 5px 5px 0 var(--neon);
-}
-
-.btn {
-  border-width: 1.5px;
-  border-color: var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
-[data-theme='dark'] .btn {
-  border-color: #000;
-  box-shadow: 2px 2px 0 #000;
-}
-
-.btn:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--ink);
-}
-
-.btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: 0 0 0 var(--ink);
-}
-
-.btn-text,
-.btn-icon,
-.pw-toggle {
-  box-shadow: none;
+.btn-primary,
+.btn-neon {
+  background: linear-gradient(120deg, #ff3d81, #ffc83d);
+  color: #1a0b2e;
   border-color: transparent;
+  box-shadow: 0 6px 22px rgba(255, 61, 129, 0.38);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-neon:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 10px 30px rgba(255, 61, 129, 0.5);
 }
 
 .input {
-  border: 1.5px solid var(--ink);
-  background: var(--surface);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
 }
 
-[data-theme='dark'] .input {
-  border-color: var(--line-strong);
+.input:focus {
+  border-color: var(--accent);
 }
 
 .sidebar {
-  background: var(--surface);
-  border-right: 1.5px solid var(--ink);
-}
-
-[data-theme='dark'] .sidebar {
-  border-right-color: var(--line-strong);
+  background: linear-gradient(180deg, #1a0b2e, #0f0620);
+  border-right: 1px solid #3d2b63;
+  color: #f6efff;
 }
 
 .nav-item.active,
 .nav-item.active:hover {
-  background: var(--ochre);
-  color: #14110c;
-  border: 1.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  background: linear-gradient(120deg, rgba(255, 61, 129, 0.9), rgba(255, 200, 61, 0.9));
+  color: #1a0b2e;
+  box-shadow: 0 6px 18px rgba(255, 61, 129, 0.35);
 }
 
 .login-art {
   background:
-    repeating-linear-gradient(90deg, var(--ochre) 0 18px, #14110c 18px 24px, var(--clay) 24px 42px, #14110c 42px 48px) top / 100% 14px no-repeat,
-    radial-gradient(520px 380px at 90% 10%, rgba(233, 163, 28, 0.35), transparent 70%),
-    linear-gradient(160deg, #0a2a1c, #0f3d2a 70%);
+    radial-gradient(520px 420px at 85% 8%, rgba(255, 61, 129, 0.55), transparent 70%),
+    radial-gradient(520px 460px at 5% 100%, rgba(47, 224, 208, 0.35), transparent 70%),
+    radial-gradient(400px 300px at 55% 55%, rgba(255, 200, 61, 0.22), transparent 70%),
+    linear-gradient(160deg, #1a0b2e, #0a0614);
+}
+
+.login-art::before {
+  --pattern: none;
 }
 
 .login-art h1 {
-  font-size: clamp(2.6rem, 5vw, 4rem);
-  line-height: 1.02;
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  line-height: 1;
+  background: linear-gradient(100deg, #fff 30%, #ffc83d 75%, #ff3d81);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .login-box {
   background: var(--surface);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius);
-  box-shadow: 6px 6px 0 var(--ochre), 6px 6px 0 1.5px var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 22px;
   padding: 28px;
+  box-shadow: 0 30px 80px rgba(120, 30, 160, 0.25), 0 0 0 6px rgba(255, 61, 129, 0.08);
 }
 
-[data-theme='dark'] .login-box {
-  border-color: var(--line-strong);
-  box-shadow: 6px 6px 0 #000;
-}
-
-.page > h1,
-.page-head h1 {
-  background: linear-gradient(transparent 62%, rgba(233, 163, 28, 0.55) 62% 92%, transparent 92%);
-  display: inline;
+.seg-tabs button.on {
+  background: linear-gradient(120deg, #ff3d81, #ffc83d);
+  color: #1a0b2e;
+  box-shadow: 0 4px 14px rgba(255, 61, 129, 0.35);
 }
