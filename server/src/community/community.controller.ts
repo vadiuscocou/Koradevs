@@ -51,6 +51,11 @@ export class CommunityController {
     return passport;
   }
 
+  @Get('network')
+  network() {
+    return this.community.network();
+  }
+
   @Get('stats')
   stats() {
     return this.community.stats();

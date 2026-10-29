@@ -43,6 +43,15 @@ describe('Communauté, Passeport et projets', () => {
     expect((await http().get('/community/projects').expect(200)).body).toEqual([]);
   });
 
+  it('shows open doors on the public map as city and country only', async () => {
+    expect((await http().get('/community/network').expect(200)).body).toEqual({ places: [], recent: [] });
+    const awa = await login('awa');
+    await http().put('/community/profile').set(as(awa)).send({ tech: ['JavaScript'], city: 'Abidjan', country: 'Côte d’Ivoire', doorStatus: 'ouverte' }).expect(200);
+    const { places } = (await http().get('/community/network').expect(200)).body;
+    expect(places).toEqual([{ city: 'Abidjan', country: 'Côte d’Ivoire' }]);
+    expect(JSON.stringify(places)).not.toContain('awa');
+  });
+
   it('gives real counters only', async () => {
     expect((await http().get('/community/stats').expect(200)).body).toEqual({ fiches: 0, aides: 0, confirmees: 0, aidants: 0 });
     const awa = await login('awa');

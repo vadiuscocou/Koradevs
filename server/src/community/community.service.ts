@@ -217,6 +217,23 @@ export class CommunityService {
     return { fiches: solutions.length, aides: proofs.length, confirmees: proofs.filter((p) => p.testPassed).length, aidants };
   }
 
+  /** What the public map shows: where doors are open (city and country only, no names) and the latest confirmed helps. */
+  async network(): Promise<{ places: { city: string; country: string }[]; recent: { helper: string; title: string; city: string; country: string; at: string }[] }> {
+    const [helperIds, proofs] = await Promise.all([this.store.listHelperIds(), this.store.listDocs<ProofDoc>('proof', 200)]);
+    const places: { city: string; country: string }[] = [];
+    for (const id of helperIds) {
+      const profile = await this.store.getDoc<ProfileDoc>('profile', id);
+      if (profile?.doorStatus === 'ouverte' && (profile.city || profile.country)) places.push({ city: profile.city, country: profile.country });
+    }
+    const recent: { helper: string; title: string; city: string; country: string; at: string }[] = [];
+    for (const proof of [...proofs].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6)) {
+      const owner = (await this.store.findUserByLogin(proof.helper))?.id;
+      const profile = owner ? await this.store.getDoc<ProfileDoc>('profile', owner) : undefined;
+      recent.push({ helper: proof.helper, title: proof.title, city: profile?.city ?? '', country: profile?.country ?? '', at: proof.at });
+    }
+    return { places: places.slice(0, 200), recent };
+  }
+
   // --- Projets -------------------------------------------------------------
 
   getProjects(): Promise<CommunityProject[]> {

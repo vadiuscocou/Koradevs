@@ -136,6 +136,11 @@ export const updateCommunityProfile = (
 export const getNeighbors = (token: string) => call<CommunityProfile[]>('GET', '/community/neighbors', undefined, token);
 export const ringNeighbor = (token: string, login: string) =>
   call<{ success: boolean; message: string }>('POST', `/community/neighbors/ring/${encodeURIComponent(login)}`, undefined, token);
+export interface NetworkInfo {
+  places: { city: string; country: string }[];
+  recent: { helper: string; title: string; city: string; country: string; at: string }[];
+}
+export const getNetwork = () => call<NetworkInfo>('GET', '/community/network');
 export const getStats = () => call<{ fiches: number; aides: number; confirmees: number; aidants: number }>('GET', '/community/stats');
 export const getPassport = (login: string) => call<Passport>('GET', `/community/passport/${encodeURIComponent(login)}`);
 
