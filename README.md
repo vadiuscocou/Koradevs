@@ -1,8 +1,37 @@
-# SOS Dev
+# KoraDevs
 
-> Quand l'IA ne suffit plus, un développeur te rejoint depuis ton terminal.
+> Quand tu bloques, un développeur te rejoint. Une plateforme d'entraide entre développeurs africains.
 
-Projet CADEV 2026. Le concept complet est dans [`docs/sos-dev-concept-v2.pdf`](docs/sos-dev-concept-v2.pdf).
+Projet CADEV 2026 (Systalink). Le concept complet est dans [`docs/sos-dev-concept-v2.pdf`](docs/sos-dev-concept-v2.pdf).
+
+## En bref, pour tout le monde
+
+**Le problème.** Un développeur bloque sur une erreur. Les forums sont lents, l'IA ne suffit pas toujours, et on se sent seul.
+
+**L'idée.** On colle son erreur. Un développeur disponible reçoit l'alerte, rejoint une **salle de code partagée** (on voit et on modifie le même code en direct, avec un chat), et on fait tourner le code pour vérifier que ça marche. La solution devient une **fiche** que les suivants retrouvent.
+
+**Ce qu'on peut faire sur le site** (menu de gauche) :
+
+| Onglet | À quoi ça sert |
+| --- | --- |
+| **Accueil** | Voir qui est disponible, ouvrir sa porte pour aider, suivre ses demandes |
+| **Espaces** | Discuter dans des salons par techno (javascript, python…), suivre des développeurs, lire le fil de leurs aides |
+| **Fiches** | Chercher une solution, la rejouer avant/après, dire qu'elle est « utile », la commenter |
+| **Projets** | Présenter un projet et trouver des coéquipiers |
+| **Moi** | Son profil, ses technos, son **Passeport** |
+| **Demander de l'aide** | Le bouton principal : colle ton erreur, un voisin te rejoint |
+
+**Le Passeport.** Chaque aide confirmée par un test vert ajoute une preuve au profil de l'aidant. L'ensemble a une empreinte (SHA-256) que n'importe qui peut recalculer avec un QR code : personne ne peut tricher.
+
+**Ta sécurité.** Les mots de passe et clés collés par erreur sont masqués avant tout envoi. Le code s'exécute dans ton navigateur (jamais sur le serveur) et il est effacé après 24 h.
+
+**Comptes.** Inscription avec e-mail et mot de passe, ou connexion avec GitHub. Tous les comptes ont les mêmes droits : il n'y a pas encore de compte administrateur ni de modération.
+
+**Où sont les données.** Dans une base PostgreSQL en ligne (Render). Sur un ordinateur sans base, tout reste en mémoire et disparaît à l'arrêt. Au démarrage, le serveur ajoute 23 fiches de départ et un message d'accueil (signé `equipe-koradevs`, nom réservé) dans chaque salon. Il n'invente aucun faux compte ni fausse preuve.
+
+**Essayer.** Site de test : https://koradevs.onrender.com/ (le premier chargement peut prendre une minute, l'offre gratuite s'endort). En local : voir « Démarrage » ci-dessous.
+
+La suite de ce fichier s'adresse aux développeurs.
 
 ## Structure
 
@@ -151,6 +180,10 @@ Chaque personne a un **pseudo unique** (insensible à la casse) : si GitHub ou G
 | `GET /community/passport/:login` · `GET /community/confirmed` | Passeport public (preuves + empreinte SHA-256 recalculable) · fiches confirmées par un test |
 | `GET/POST /community/projects` · `…/join` · `…/requests/:login` · `…/tasks` | Vitrine de projets, demande pour rejoindre (l'auteur décide), tableau de tâches réservé aux membres |
 | `POST /community/report` | Signaler une fiche ou un projet |
+| `GET /community/network` · `GET /community/stats` | Public : villes des aidants à leur porte (sans noms) et dernières aides · compteurs réels |
+| `GET /spaces` · `GET/POST /spaces/:id/messages` | Salons par techno (connexion requise, secrets masqués, 1 message toutes les 0,6 s) |
+| `GET/POST /spaces/fiche/:id` · `…/utile` · `…/comments` | Commentaires et « utile » sur une fiche |
+| `POST /spaces/follow/:login` · `GET /spaces/following` · `GET /spaces/feed` | Suivre un développeur, voir ses aides confirmées |
 | WebSocket `/ws` | Radar : `auth`, `disponible`, `pause`, `accepter` (aidant) · `suivre` (demandeur) |
 | WebSocket `/ws` | Salle SOS : `rejoindre`, `yjs`, `message`, `resolu` · `proposer`, `relance` (aidant) · `terminal`, `execution`, `reponse`, `reponse-relance` (terminal du demandeur) |
 
