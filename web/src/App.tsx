@@ -24,7 +24,6 @@ const Projets = lazy(() => import('./Projets.js').then((m) => ({ default: m.Proj
 const Moi = lazy(() => import('./Moi.js').then((m) => ({ default: m.Moi })));
 const DemanderAide = lazy(() => import('./DemanderAide.js').then((m) => ({ default: m.DemanderAide })));
 const Salle = lazy(() => import('./Salle.js').then((m) => ({ default: m.Salle })));
-const Landing = lazy(() => import('./Landing.js').then((m) => ({ default: m.Landing })));
 const PasseportPublic = lazy(() => import('./Passeport.js').then((m) => ({ default: m.PasseportPublic })));
 
 type Tab = 'accueil' | 'fiches' | 'projets' | 'moi';
@@ -284,12 +283,7 @@ function Root() {
   }
 
   if (!token || !user) {
-    if (route.auth) return <Login key={route.auth} initialMode={route.auth} dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
-    return (
-      <Suspense fallback={<PageLoading />}>
-        <Landing dark={dark} toggleTheme={toggleTheme} />
-      </Suspense>
-    );
+    return <Login key={route.auth ?? 'login'} initialMode={route.auth ?? 'login'} dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
   }
 
   if (route.salle) {

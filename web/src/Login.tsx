@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, BadgeCheck, Eye, EyeOff, LifeBuoy, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Eye, EyeOff, LifeBuoy, ShieldCheck, Users } from 'lucide-react';
 import type { PublicUser } from '@sos/shared';
 import { GITHUB_LOGIN_URL, GOOGLE_LOGIN_URL, authConfig, loginWithPassword, signup } from './api.js';
 import { Logo } from './Logo.js';
@@ -105,7 +105,6 @@ export function Login({
         <div className="theme">
           <ThemeButton dark={dark} toggle={toggleTheme} />
         </div>
-        <a className="back-link" href="#/"><ArrowLeft size={15} /> Retour à l’accueil</a>
 
         <div className="login-box col" style={{ gap: 18 }}>
           <div>
