@@ -4,7 +4,7 @@ import type { PublicUser } from '@sos/shared';
 import { GITHUB_LOGIN_URL, GOOGLE_LOGIN_URL, authConfig, loginWithPassword, signup } from './api.js';
 import { Logo } from './Logo.js';
 import { Spinner, ThemeButton } from './ui.js';
-import { CodeScene } from './Visuals.js';
+import { AfricaMap } from './AfricaMap.js';
 
 interface Methods {
   githubWeb: boolean;
@@ -90,7 +90,7 @@ export function Login({
           <p style={{ marginTop: 14, color: 'rgba(255,255,255,.8)', maxWidth: 440 }}>
             Un quartier de développeurs, en français, léger. L’aide arrive en direct, la solution est confirmée par un test et devient un savoir partagé.
           </p>
-          <div className="login-scene"><CodeScene /></div>
+          <div className="login-scene"><AfricaMap /></div>
           <ul>
             <li><LifeBuoy size={20} /> Un aidant te rejoint dans une salle de code partagée</li>
             <li><ShieldCheck size={20} /> Tes secrets sont masqués avant tout envoi</li>

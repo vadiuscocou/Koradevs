@@ -2339,7 +2339,7 @@ svg {
 }
 
 .login-scene {
-  max-width: 380px;
+  max-width: 520px;
   margin: 26px 0 8px;
 }
 
@@ -2959,4 +2959,189 @@ svg {
     box-shadow: none;
     break-inside: avoid;
   }
+}
+
+/* ---------- Carte vivante de l'Afrique ---------- */
+
+.amap {
+  position: relative;
+}
+
+.amap-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 40vh;
+}
+
+.amap-dots circle {
+  fill: rgba(255, 255, 255, 0.2);
+}
+
+.amap-helper {
+  fill: var(--neon);
+  opacity: 0.85;
+  animation: amap-blink 3.2s ease-in-out infinite;
+}
+
+.amap-helper:nth-child(3n) {
+  animation-delay: 1.1s;
+}
+
+.amap-helper:nth-child(3n + 1) {
+  animation-delay: 2s;
+}
+
+.amap-line {
+  fill: none;
+  stroke: var(--neon);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 5px var(--neon));
+  animation: amap-draw 1.6s 1.1s var(--ease) forwards;
+}
+
+.amap-ask {
+  fill: #ff8a5c;
+  filter: drop-shadow(0 0 8px #ff8a5c);
+}
+
+.amap-ok {
+  fill: var(--neon);
+  filter: drop-shadow(0 0 10px var(--neon));
+  opacity: 0;
+  animation: amap-pop 0.4s 2.5s ease-out forwards;
+}
+
+.amap-ring {
+  fill: none;
+  stroke: #ff8a5c;
+  stroke-width: 1.6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: amap-ping 1.8s ease-out infinite;
+}
+
+.amap-ring.r2 {
+  stroke: var(--neon);
+  opacity: 0;
+  animation: amap-ping 1.8s 2.5s ease-out infinite;
+}
+
+.amap-card {
+  position: relative;
+  margin-top: 6px;
+  max-width: 100%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(7, 34, 23, 0.82);
+  border: 1px solid rgba(77, 240, 140, 0.35);
+  color: #fff;
+  font-size: 0.86rem;
+  backdrop-filter: blur(8px);
+  animation: amap-card 4.2s ease-out both;
+}
+
+.amap-card p {
+  margin: 2px 0 0;
+}
+
+.amap-card p span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.amap-card .ok {
+  color: var(--neon);
+  opacity: 0;
+  animation: amap-pop 0.4s 2.5s ease-out forwards;
+}
+
+.amap-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neon);
+  font-weight: 800;
+}
+
+.amap-live i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neon);
+  animation: amap-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes amap-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes amap-pop {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes amap-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes amap-ping {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes amap-card {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  8%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .amap-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .amap-ok,
+  .amap-card .ok {
+    animation: none;
+    opacity: 1;
+  }
+  .amap-ring,
+  .amap-helper,
+  .amap-live i,
+  .amap-card {
+    animation: none;
+  }
+}
+
+.hero-map {
+  background: linear-gradient(160deg, #072217, #0f3d2a);
+  border-radius: var(--radius-lg);
+  padding: 16px 16px 10px;
+  margin: 0 0 18px;
 }
