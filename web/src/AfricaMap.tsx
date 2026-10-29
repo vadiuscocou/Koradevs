@@ -62,8 +62,15 @@ export function AfricaMap() {
   const s = STORIES[i]!;
   const a = CITIES[s.from]!;
   const b = CITIES[s.to]!;
-  const hasReal = real.length > 0;
+  // The real network drives the map once it is big enough to draw threads; before that, the example plays so it is never bare.
+  const distinct = real.filter((p, k) => real.findIndex((q) => q[0] === p[0] && q[1] === p[1]) === k);
+  const hasReal = distinct.length >= 3;
   const proof = live.length ? live[i % live.length]! : null;
+  const ra = hasReal ? distinct[i % distinct.length]! : a;
+  const rb = hasReal ? distinct[(i + 1 + Math.floor(i / distinct.length)) % distinct.length]! : b;
+  const same = ra[0] === rb[0] && ra[1] === rb[1];
+  // Example doors fill in around the real ones, lighter, until the community is large.
+  const ghosts = hasReal && distinct.length >= 12 ? [] : HELPERS.map((c) => CITIES[c]!).filter((g) => !distinct.some((p) => Math.hypot(p[0] - g[0], p[1] - g[1]) < 2));
   return (
     <div className="amap" aria-hidden="true">
       <svg viewBox={`-10 -10 ${AFRICA_SIZE.w * U + 20} ${AFRICA_SIZE.h * U + 20}`} className="amap-svg">
@@ -72,21 +79,18 @@ export function AfricaMap() {
             <circle key={k} cx={x * U} cy={y * U} r="2.1" />
           ))}
         </g>
-        {(hasReal ? real : HELPERS.map((c) => CITIES[c]!)).map(([x, y], k) => (
-          <circle key={k} className="amap-helper" cx={x * U} cy={y * U} r="3.4" />
+        {ghosts.map(([x, y], k) => (
+          <circle key={`g${k}`} className="amap-helper" style={{ opacity: 0.45 }} cx={x * U} cy={y * U} r="3" />
         ))}
-        {proof && hasReal && (
-          <g key={`p${i}`}>
-            <circle className="amap-ok" style={{ animationDelay: '0.2s' }} cx={proof.at[0] * U} cy={proof.at[1] * U} r="6" />
-            <circle className="amap-ring r2" style={{ animationDelay: '0.2s' }} cx={proof.at[0] * U} cy={proof.at[1] * U} r="6" />
-          </g>
-        )}
-        {!hasReal && <g key={i}>
-          <path className="amap-line" d={arc(a, b)} pathLength={1} />
-          <circle className="amap-ask" cx={a[0] * U} cy={a[1] * U} r="5" />
-          <circle className="amap-ring" cx={a[0] * U} cy={a[1] * U} r="5" />
-          <circle className="amap-ok" cx={b[0] * U} cy={b[1] * U} r="6" />
-          <circle className="amap-ring r2" cx={b[0] * U} cy={b[1] * U} r="6" />
+        {distinct.map(([x, y], k) => (
+          <circle key={k} className="amap-helper" cx={x * U} cy={y * U} r="3.6" />
+        ))}
+        {!same && <g key={i}>
+          <path className="amap-line" d={arc(ra, rb)} pathLength={1} />
+          <circle className="amap-ask" cx={ra[0] * U} cy={ra[1] * U} r="5" />
+          <circle className="amap-ring" cx={ra[0] * U} cy={ra[1] * U} r="5" />
+          <circle className="amap-ok" cx={rb[0] * U} cy={rb[1] * U} r="6" />
+          <circle className="amap-ring r2" cx={rb[0] * U} cy={rb[1] * U} r="6" />
         </g>}
       </svg>
       <div className="amap-card" key={`c${i}`}>
