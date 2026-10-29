@@ -88,7 +88,7 @@ export function Login({
         <div>
           <h1>Quand tu bloques, un voisin te rejoint.</h1>
           <p style={{ marginTop: 14, color: 'rgba(255,255,255,.8)', maxWidth: 440 }}>
-            Un quartier de développeurs, en français, léger. L’aide arrive en direct, la solution est confirmée par un test et devient un savoir partagé.
+            Une communauté de développeurs qui s’entraident, en français. L’aide arrive en direct, la solution est confirmée par un test et devient un savoir partagé.
           </p>
           <div className="login-scene"><AfricaMap /></div>
           <ul>
@@ -109,7 +109,7 @@ export function Login({
         <div className="login-box col" style={{ gap: 18 }}>
           <div>
             <h2 style={{ fontSize: '1.7rem' }}>{signingUp ? 'Crée ton compte' : 'Content de te revoir'}</h2>
-            <p className="muted" style={{ marginTop: 6 }}>{signingUp ? 'Gratuit, en moins d’une minute.' : 'Connecte-toi pour entrer dans le quartier.'}</p>
+            <p className="muted" style={{ marginTop: 6 }}>{signingUp ? 'Gratuit, en moins d’une minute.' : 'Connecte-toi pour retrouver ta communauté.'}</p>
           </div>
 
           {methods.passwordAuth && (

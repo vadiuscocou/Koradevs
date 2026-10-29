@@ -5,7 +5,7 @@ import { SPACES, type SpaceMessage } from './spaces.service.js';
 export const TEAM_LOGIN = 'equipe-koradevs';
 
 const WELCOME: Record<string, string> = {
-  general: 'Bienvenue dans le quartier ! Présente-toi en une phrase : ta ville, ta techno, ce que tu construis. Ici on s’entraide en français, sans jugement.',
+  general: 'Bienvenue sur KoraDevs ! Présente-toi en une phrase : ta ville, ta techno, ce que tu construis. Ici on s’entraide en français, sans jugement.',
   bugs: 'Un bug te résiste ? Colle le message d’erreur (sans mot de passe, ils sont masqués de toute façon) et dis ce que tu as déjà essayé. Pour une aide en direct dans une salle de code, utilise « Demander de l’aide ».',
   javascript: 'JavaScript, TypeScript, Node : pose tes questions, partage tes trouvailles. Astuce : cherche d’abord dans les Fiches, ton erreur y est peut-être déjà.',
   react: 'React, Next et interfaces web. Montre ce que tu construis, on te fera des retours.',
