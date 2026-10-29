@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, DoorClosed, DoorOpen, FolderKanban, Home, LifeBuoy, LogOut, User } from 'lucide-react';
+import { BookOpen, DoorClosed, DoorOpen, FolderKanban, Home, LifeBuoy, LogOut, MessagesSquare, User } from 'lucide-react';
 import type { PublicUser, RadarAlert, RadarStage, RequestSummary, ServerMessage, SolutionHit } from '@sos/shared';
 import {
   connectRadar,
@@ -19,6 +19,7 @@ import { Logo } from './Logo.js';
 import { Avatar, Spinner, ThemeButton, ToastProvider, useToast } from './ui.js';
 
 const Accueil = lazy(() => import('./Accueil.js').then((m) => ({ default: m.Accueil })));
+const Espaces = lazy(() => import('./Espaces.js').then((m) => ({ default: m.Espaces })));
 const Fiches = lazy(() => import('./Fiches.js').then((m) => ({ default: m.Fiches })));
 const Projets = lazy(() => import('./Projets.js').then((m) => ({ default: m.Projets })));
 const Moi = lazy(() => import('./Moi.js').then((m) => ({ default: m.Moi })));
@@ -26,7 +27,7 @@ const DemanderAide = lazy(() => import('./DemanderAide.js').then((m) => ({ defau
 const Salle = lazy(() => import('./Salle.js').then((m) => ({ default: m.Salle })));
 const PasseportPublic = lazy(() => import('./Passeport.js').then((m) => ({ default: m.PasseportPublic })));
 
-type Tab = 'accueil' | 'fiches' | 'projets' | 'moi';
+type Tab = 'accueil' | 'espaces' | 'fiches' | 'projets' | 'moi';
 
 interface Route {
   tab: Tab;
@@ -41,7 +42,7 @@ function readRoute(): Route {
   const path = location.hash.replace(/^#\/?/, '').split('?')[0] ?? '';
   const salle = /^salle\/([0-9a-f-]{36})$/i.exec(path)?.[1] ?? null;
   const passeport = /^passeport\/([\w.-]{1,40})$/i.exec(path)?.[1] ?? null;
-  const tab: Tab = path === 'fiches' ? 'fiches' : path === 'projets' ? 'projets' : path === 'moi' ? 'moi' : 'accueil';
+  const tab: Tab = path === 'espaces' ? 'espaces' : path === 'fiches' ? 'fiches' : path === 'projets' ? 'projets' : path === 'moi' ? 'moi' : 'accueil';
   const auth = path === 'connexion' ? 'login' : path === 'inscription' ? 'signup' : null;
   return { tab, demander: path === 'demander', salle, passeport, auth };
 }
@@ -75,6 +76,7 @@ export interface Shared {
 
 const NAV: Array<{ tab: Tab; label: string; icon: typeof Home }> = [
   { tab: 'accueil', label: 'Accueil', icon: Home },
+  { tab: 'espaces', label: 'Espaces', icon: MessagesSquare },
   { tab: 'fiches', label: 'Fiches', icon: BookOpen },
   { tab: 'projets', label: 'Projets', icon: FolderKanban },
   { tab: 'moi', label: 'Moi', icon: User },
@@ -412,6 +414,8 @@ function Root() {
               <DemanderAide shared={shared} />
             ) : route.tab === 'accueil' ? (
               <Accueil shared={shared} />
+            ) : route.tab === 'espaces' ? (
+              <Espaces shared={shared} />
             ) : route.tab === 'fiches' ? (
               <Fiches shared={shared} initialQuery={ficheQuery} initialOpen={ficheOpen} />
             ) : route.tab === 'projets' ? (

@@ -3145,3 +3145,150 @@ svg {
   padding: 16px 16px 10px;
   margin: 0 0 18px;
 }
+
+/* ---------- Espaces : salons, fil, commentaires ---------- */
+
+.espaces {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  height: calc(100vh - 150px);
+  min-height: 420px;
+}
+
+.espaces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.room-title {
+  margin: 14px 10px 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.room:hover {
+  background: var(--bg-soft);
+}
+
+.room.on {
+  background: var(--mint-bg);
+  color: var(--mint-fg);
+}
+
+.room .small {
+  margin-left: auto;
+}
+
+.espaces-main {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.espaces-main header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.espaces-main h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.espaces-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg,
+.comment,
+.feed-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.msg p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.espaces-main .msg a,
+.espaces-main .feed-item a,
+.comment a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.feed-item > svg {
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.follow {
+  vertical-align: middle;
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.msg:hover .follow {
+  opacity: 1;
+}
+
+.espaces-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 860px) {
+  .espaces {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100vh - 190px);
+  }
+  .espaces-list {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+  }
+  .room-title {
+    display: none;
+  }
+  .room {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}

@@ -55,7 +55,7 @@ export interface PurgeResult {
   sessions: number;
 }
 
-export type DocKind = 'profile' | 'project' | 'report' | 'proof' | 'replay' | 'config' | 'push';
+export type DocKind = 'profile' | 'project' | 'report' | 'proof' | 'replay' | 'config' | 'push' | 'follow' | 'vote' | `msg:${string}` | `comment:${string}`;
 
 export interface Store {
   readonly kind: 'postgres' | 'memoire';

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FicheSocial } from './FicheSocial.js';
 import { ArrowLeft, BookOpen, Copy, Flag, Search, Share2 } from 'lucide-react';
 import type { SolutionHit } from '@sos/shared';
 import { getConfirmedIds, getRecentSolutions, getReplay, searchSolutions, type ReplayFile } from './api.js';
@@ -106,6 +107,8 @@ export function Fiches({ shared, initialQuery, initialOpen }: { shared: Shared; 
             <Flag size={16} /> Signaler
           </button>
         </div>
+
+        <FicheSocial token={shared.token} solutionId={open.id} />
 
         <div className="card tint-mint tight row">
           <span className="grow small">Ça ne règle pas ton problème ?</span>

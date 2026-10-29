@@ -18,6 +18,8 @@ import { RequestsController } from './requests/requests.controller.js';
 import { RequestsService } from './requests/requests.service.js';
 import { SolutionsController } from './solutions/solutions.controller.js';
 import { SolutionsService } from './solutions/solutions.service.js';
+import { SpacesController } from './spaces/spaces.controller.js';
+import { SpacesService } from './spaces/spaces.service.js';
 import { CommunityController } from './community/community.controller.js';
 import { CommunityService } from './community/community.service.js';
 import { authRateLimit, securityHeaders } from './security.js';
@@ -40,7 +42,7 @@ export class AppModule {
   static forRoot(deps: AppDeps): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, RequestsController, SolutionsController, CommunityController, PushController],
+      controllers: [HealthController, AuthController, RequestsController, SolutionsController, CommunityController, SpacesController, PushController],
       providers: [
         { provide: CONFIG, useValue: deps.config },
         { provide: STORE, useValue: deps.store },
@@ -55,6 +57,7 @@ export class AppModule {
         SalleService,
         SolutionsService,
         CommunityService,
+        SpacesService,
         PushService,
         { provide: PUSH_SENDER, useValue: deps.pushSender ?? webPushSender },
       ],

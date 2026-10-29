@@ -192,3 +192,31 @@ export const getPushKey = () => call<{ publicKey: string }>('GET', '/push/key');
 export const savePushSubscription = (token: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
   call<void>('POST', '/push/subscribe', subscription, token);
 export const deletePushSubscription = (token: string, endpoint: string) => call<void>('DELETE', '/push/subscribe', { endpoint }, token);
+
+export interface Space {
+  id: string;
+  name: string;
+  topic: string;
+}
+export interface SpaceMessage {
+  id: string;
+  author: string;
+  text: string;
+  at: string;
+}
+export interface FeedItem {
+  helper: string;
+  title: string;
+  tech: string[];
+  solutionId: string;
+  at: string;
+}
+export const getSpaces = (token: string) => call<Space[]>('GET', '/spaces', undefined, token);
+export const getSpaceMessages = (token: string, id: string) => call<SpaceMessage[]>('GET', `/spaces/${id}/messages`, undefined, token);
+export const postSpaceMessage = (token: string, id: string, text: string) => call<SpaceMessage>('POST', `/spaces/${id}/messages`, { text }, token);
+export const getFollowing = (token: string) => call<{ following: string[] }>('GET', '/spaces/following', undefined, token);
+export const toggleFollow = (token: string, login: string) => call<{ following: boolean }>('POST', `/spaces/follow/${encodeURIComponent(login)}`, undefined, token);
+export const getFeed = (token: string) => call<FeedItem[]>('GET', '/spaces/feed', undefined, token);
+export const getFicheSocial = (token: string, id: string) => call<{ comments: SpaceMessage[]; count: number; mine: boolean }>('GET', `/spaces/fiche/${id}`, undefined, token);
+export const toggleUtile = (token: string, id: string) => call<{ count: number; mine: boolean }>('POST', `/spaces/fiche/${id}/utile`, undefined, token);
+export const postFicheComment = (token: string, id: string, text: string) => call<SpaceMessage>('POST', `/spaces/fiche/${id}/comments`, { text }, token);
