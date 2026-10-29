@@ -14,6 +14,7 @@ import {
   type CommunityProfile,
   type Radar,
 } from './api.js';
+import { Landing } from './Landing.js';
 import { Login } from './Login.js';
 import { Logo } from './Logo.js';
 import { Avatar, Spinner, ThemeButton, ToastProvider, useToast } from './ui.js';
@@ -36,6 +37,8 @@ interface Route {
   passeport: string | null;
   /** Logged-out visitors: the sign-in or sign-up page (otherwise they see the public home page). */
   auth: 'login' | 'signup' | null;
+  /** Empty address: signed-out visitors get the front page. */
+  home: boolean;
 }
 
 function readRoute(): Route {
@@ -44,7 +47,7 @@ function readRoute(): Route {
   const passeport = /^passeport\/([\w.-]{1,40})$/i.exec(path)?.[1] ?? null;
   const tab: Tab = path === 'espaces' ? 'espaces' : path === 'fiches' ? 'fiches' : path === 'projets' ? 'projets' : path === 'moi' ? 'moi' : 'accueil';
   const auth = path === 'connexion' ? 'login' : path === 'inscription' ? 'signup' : null;
-  return { tab, demander: path === 'demander', salle, passeport, auth };
+  return { tab, demander: path === 'demander', salle, passeport, auth, home: path === '' };
 }
 
 /** Where the person's own request stands while they wait for a helper. */
@@ -285,6 +288,7 @@ function Root() {
   }
 
   if (!token || !user) {
+    if (route.home) return <Landing dark={dark} toggleTheme={toggleTheme} />;
     return <Login key={route.auth ?? 'login'} initialMode={route.auth ?? 'login'} dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
   }
 
