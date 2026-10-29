@@ -194,11 +194,11 @@ export function Accueil({ shared }: { shared: Shared }) {
             ))}
           </div>
         ) : doorOpen ? (
-          <Empty icon={<Radio size={26} />} title="Ta porte est ouverte">
+          <Empty art="radar" title="Ta porte est ouverte">
             {connected ? 'Dès qu’une demande correspond à tes technos, elle apparaît ici.' : 'Connexion au Radar en cours…'}
           </Empty>
         ) : (
-          <Empty icon={<DoorOpen size={26} />} title="Ta porte est fermée">
+          <Empty art="door" title="Ta porte est fermée">
             <button type="button" className="btn btn-soft btn-sm" style={{ marginTop: 8 }} onClick={() => void shared.setDoor(true)}>
               Ouvrir ma porte pour aider
             </button>
@@ -214,7 +214,7 @@ export function Accueil({ shared }: { shared: Shared }) {
         {neighbors === null ? (
           <Skeletons count={2} />
         ) : neighbors.length === 0 ? (
-          <Empty icon={<Users size={26} />} title="Personne n’a ouvert sa porte pour l’instant">
+          <Empty art="people" title="Personne n’a ouvert sa porte pour l’instant">
             Invite un ami développeur : dès qu’il ouvre sa porte, il apparaît ici.
           </Empty>
         ) : (
@@ -250,7 +250,7 @@ export function Accueil({ shared }: { shared: Shared }) {
         {solutions === null ? (
           <Skeletons count={3} />
         ) : solutions.length === 0 ? (
-          <Empty icon={<BookOpen size={26} />} title="Aucune fiche pour le moment">Chaque aide résolue ajoute une fiche à la bibliothèque.</Empty>
+          <Empty art="book" title="Aucune fiche pour le moment">Chaque aide résolue ajoute une fiche à la bibliothèque.</Empty>
         ) : (
           <div className="col">
             {solutions.slice(0, 4).map((s) => (

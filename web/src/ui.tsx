@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Art, type ArtKind } from './Art.js';
 import { CircleCheck, Loader2, Moon, Sun, TriangleAlert, X } from 'lucide-react';
 
 // --- Notifications ----------------------------------------------------------
@@ -70,10 +71,10 @@ export function Spinner({ size = 18 }: { size?: number }) {
   return <Loader2 className="spinner" size={size} aria-hidden="true" />;
 }
 
-export function Empty({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
+export function Empty({ icon, art, title, children }: { icon?: ReactNode; art?: ArtKind; title: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      {icon}
+      {art ? <Art kind={art} /> : icon}
       <strong>{title}</strong>
       {children && <span className="small">{children}</span>}
     </div>

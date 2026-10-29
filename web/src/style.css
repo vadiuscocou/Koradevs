@@ -3166,6 +3166,247 @@ svg {
   }
 }
 
+/* ==========================================================================
+   Identité : motifs géométriques et illustrations
+   ========================================================================== */
+
+:root {
+  /* Losange dans un losange : un motif géométrique courant dans les tissus d'Afrique de l'Ouest, très discret. */
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%234df08c' stroke-opacity='.2' stroke-width='1.4'%3E%3Cpath d='M28 4 52 28 28 52 4 28Z'/%3E%3Cpath d='M28 16 40 28 28 40 16 28Z'/%3E%3Cpath d='M28 0v4M28 52v4M0 28h4M52 28h4'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.lp-hero::before,
+.login-art::before,
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--pattern);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(115deg, transparent 18%, #000 78%);
+  -webkit-mask-image: linear-gradient(115deg, transparent 18%, #000 78%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.passport::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 220px;
+  height: 220px;
+  background-image: var(--pattern);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at 100% 100%, #000, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 100% 100%, #000, transparent 70%);
+  pointer-events: none;
+}
+
+/* Bandeau : une frise de triangles aux couleurs de la marque */
+.pattern-band {
+  height: 14px;
+  background:
+    linear-gradient(135deg, var(--brand) 25%, transparent 25%) -7px 0 / 14px 14px,
+    linear-gradient(225deg, var(--brand) 25%, transparent 25%) -7px 0 / 14px 14px,
+    linear-gradient(315deg, var(--accent) 25%, transparent 25%) 0 0 / 14px 14px,
+    linear-gradient(45deg, var(--accent) 25%, #f2c14e 25%, #f2c14e 50%, transparent 50%) 0 0 / 14px 14px,
+    var(--neon);
+  opacity: 0.95;
+}
+
+.pattern-band.flip {
+  transform: scaleY(-1);
+}
+
+.art {
+  display: block;
+  margin: 0 auto 4px;
+  overflow: visible;
+}
+
+.art .glow {
+  fill: var(--mint-bg);
+}
+
+.art .ground {
+  fill: var(--line-strong);
+  opacity: 0.6;
+}
+
+.art .frame {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+
+.art .panel,
+.art .shield {
+  fill: var(--brand);
+}
+
+.art .light {
+  fill: var(--neon);
+  opacity: 0.35;
+}
+
+.art .spill {
+  fill: var(--neon);
+  opacity: 0.25;
+}
+
+.art .knob {
+  fill: #f2c14e;
+}
+
+.art .line,
+.art .link {
+  stroke: var(--faint);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.art .link {
+  stroke: var(--accent);
+  stroke-dasharray: 2 6;
+}
+
+.art .leaf {
+  fill: var(--accent);
+}
+
+.art .card {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+
+.art .card.back {
+  fill: var(--sky-bg);
+}
+
+.art .card.mid {
+  fill: var(--peach-bg);
+}
+
+.art .card.front {
+  fill: var(--surface);
+}
+
+.art .card.ok {
+  fill: var(--mint-bg);
+}
+
+.art .col {
+  fill: var(--bg-soft);
+}
+
+.art .mark {
+  fill: var(--accent);
+}
+
+.art .tick {
+  stroke: var(--mint-fg);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.art .shield + .tick {
+  stroke: var(--neon);
+  stroke-width: 7;
+}
+
+.art .spark {
+  fill: #f2c14e;
+  animation: twinkle 2.6s ease-in-out infinite;
+}
+
+.art .spark.s2 {
+  animation-delay: 1.2s;
+  fill: var(--neon);
+}
+
+.art .avatar {
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+
+.art .a1 {
+  fill: var(--sky-bg);
+}
+
+.art .a2 {
+  fill: var(--peach-bg);
+}
+
+.art .head {
+  fill: var(--brand);
+}
+
+.art .body {
+  fill: var(--brand);
+}
+
+.art .ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  opacity: 0.4;
+}
+
+.art .ring.r2 {
+  opacity: 0.28;
+}
+
+.art .ring.r3 {
+  opacity: 0.18;
+}
+
+.art .sweep {
+  fill: var(--accent);
+  opacity: 0.22;
+  transform-origin: 84px 62px;
+  animation: sweep 4s linear infinite;
+}
+
+.art .dot {
+  fill: var(--brand);
+}
+
+.art .ping {
+  fill: var(--neon);
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.art .float {
+  animation: floaty-art 5s ease-in-out infinite;
+}
+
+@keyframes floaty-art {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes twinkle {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.art .spark,
+.art .ping {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

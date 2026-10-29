@@ -71,7 +71,7 @@ export function PasseportCard({ passport }: { passport: Passport }) {
       <section className="card">
         <div className="section-head"><h2 className="section-title">Preuves</h2><Badge>{passport.proofs.length}</Badge></div>
         {passport.proofs.length === 0 ? (
-          <Empty icon={<BadgeCheck size={26} />} title="Pas encore de preuve">Chaque aide publiée avec l’accord des deux personnes s’ajoute ici.</Empty>
+          <Empty art="proof" title="Pas encore de preuve">Chaque aide publiée avec l’accord des deux personnes s’ajoute ici.</Empty>
         ) : (
           passport.proofs.map((p) => (
             <div key={p.id} className="proof">
@@ -140,7 +140,7 @@ export function PasseportPublic({ login, dark, toggleTheme, signedIn }: { login:
           <a className="btn btn-text small" href="#/accueil"><ArrowLeft size={15} /> {signedIn ? 'Retour à l’accueil' : 'Rejoindre KoraDevs'}</a>
         </div>
         {error ? (
-          <Empty icon={<BadgeCheck size={28} />} title="Passeport introuvable">{error}</Empty>
+          <Empty art="lost" title="Passeport introuvable">{error}</Empty>
         ) : !passport ? (
           <div className="row" style={{ justifyContent: 'center', padding: 60, color: 'var(--mute)' }}><Spinner /> Chargement…</div>
         ) : (

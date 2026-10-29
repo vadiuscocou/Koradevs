@@ -83,6 +83,8 @@ export function Landing({ dark, toggleTheme }: { dark: boolean; toggleTheme: () 
           </div>
         </section>
 
+        <div className="pattern-band" aria-hidden="true" />
+
         {stats && (
           <section className="lp-wrap lp-stats" aria-label="Chiffres de la plateforme">
             <div className="stat-tile"><b><CountUp value={stats.fiches} /></b><span>fiche{stats.fiches > 1 ? 's' : ''} solution{stats.fiches > 1 ? 's' : ''}</span></div>
@@ -161,6 +163,7 @@ export function Landing({ dark, toggleTheme }: { dark: boolean; toggleTheme: () 
           </div>
         </section>
 
+        <div className="pattern-band flip" aria-hidden="true" />
         <section className="lp-final" aria-labelledby="t-final">
           <div className="lp-wrap">
             <h2 id="t-final">Prêt à ne plus rester bloqué ?</h2>

@@ -141,7 +141,7 @@ export function Fiches({ shared, initialQuery, initialOpen }: { shared: Shared; 
       {items === null ? (
         <Skeletons count={4} />
       ) : items.length === 0 ? (
-        <Empty icon={<BookOpen size={28} />} title={debounced.trim() ? 'Aucune fiche ne correspond' : 'La bibliothèque est vide'}>
+        <Empty art="book" title={debounced.trim() ? 'Aucune fiche ne correspond' : 'La bibliothèque est vide'}>
           {debounced.trim() ? 'Demande de l’aide : la solution deviendra une fiche pour les suivants.' : 'Chaque aide résolue ajoutera une fiche ici.'}
           {debounced.trim() && (
             <div style={{ marginTop: 10 }}>

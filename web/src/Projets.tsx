@@ -71,7 +71,7 @@ export function Projets({ shared }: { shared: Shared }) {
       {projects === null ? (
         <Skeletons count={3} />
       ) : visible.length === 0 ? (
-        <Empty icon={<FolderKanban size={28} />} title={projects.length === 0 ? 'Aucun projet publié pour l’instant' : 'Rien dans ce filtre'}>
+        <Empty art="project" title={projects.length === 0 ? 'Aucun projet publié pour l’instant' : 'Rien dans ce filtre'}>
           {projects.length === 0 && (
             <div style={{ marginTop: 8 }}>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>Publie le premier</button>
