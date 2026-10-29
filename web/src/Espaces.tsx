@@ -6,6 +6,7 @@ import { Avatar, Empty, useToast } from './ui.js';
 
 const POLL_MS = 3000;
 const FEED = 'fil';
+const TEAM = 'equipe-koradevs';
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -128,8 +129,8 @@ export function Espaces({ shared }: { shared: Shared }) {
                   <Avatar name={m.author} size={34} />
                   <div className="grow">
                     <div className="small">
-                      <a href={`#/passeport/${m.author}`}><b>@{m.author}</b></a> <span className="muted">· {clock(m.at)}</span>
-                      {m.author !== user.login && (
+                      {m.author === TEAM ? <b>{m.author}</b> : <a href={`#/passeport/${m.author}`}><b>@{m.author}</b></a>} <span className="muted">· {clock(m.at)}</span>
+                      {m.author !== user.login && m.author !== TEAM && (
                         <button type="button" className="btn-text follow" onClick={() => follow(m.author)} aria-label={following.includes(m.author) ? `Ne plus suivre ${m.author}` : `Suivre ${m.author}`}>
                           {following.includes(m.author) ? <UserCheck size={14} /> : <UserPlus size={14} />}
                         </button>

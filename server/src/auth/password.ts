@@ -68,5 +68,5 @@ export function passwordProblem(password: string, context: { email?: string; log
 }
 
 /** Names that would look official or collide with the website's own pages. */
-const RESERVED = new Set(['admin', 'administrateur', 'root', 'support', 'koradevs', 'systalink', 'moderateur', 'api', 'null', 'undefined', 'moi', 'sos']);
+const RESERVED = new Set(['admin', 'administrateur', 'root', 'support', 'koradevs', 'equipe-koradevs', 'systalink', 'moderateur', 'api', 'null', 'undefined', 'moi', 'sos']);
 export const isReservedLogin = (login: string): boolean => RESERVED.has(login.toLowerCase());

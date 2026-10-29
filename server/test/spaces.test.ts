@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { seedSpaces, TEAM_LOGIN } from '../src/spaces/seed.js';
+import { MORE_SOLUTIONS } from '../src/solutions/seed-more.js';
 import { testApp } from './helpers.js';
 
 type Ctx = Awaited<ReturnType<typeof testApp>>;
@@ -70,5 +72,20 @@ describe('Salons, commentaires et abonnements', () => {
     await http().post('/spaces/follow/awa').set(as(awa)).expect(404);
     await http().post('/spaces/follow/personne').set(as(awa)).expect(404);
     expect((await http().get('/spaces/feed').set(as(awa)).expect(200)).body).toEqual([]);
+  });
+
+  it('opens each room with a welcome message, once, and keeps the team name for itself', async () => {
+    await seedSpaces(ctx.store);
+    await seedSpaces(ctx.store);
+    const awa = await login('awa');
+    const list = (await http().get('/spaces/javascript/messages').set(as(awa)).expect(200)).body as { author: string }[];
+    expect(list).toHaveLength(1);
+    expect(list[0]!.author).toBe(TEAM_LOGIN);
+    await http().post('/auth/signup').send({ email: 'x@example.com', login: TEAM_LOGIN, password: 'MotDePasse-Solide-42' }).expect(400);
+  });
+
+  it('has starter fiches with unique ids', () => {
+    expect(new Set(MORE_SOLUTIONS.map((s) => s.id)).size).toBe(MORE_SOLUTIONS.length);
+    expect(MORE_SOLUTIONS.every((s) => s.title && s.error && s.cause && s.fix && s.tech.length > 0)).toBe(true);
   });
 });

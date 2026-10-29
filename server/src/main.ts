@@ -7,6 +7,8 @@ import { MemoryStore } from './store/memory.js';
 import { migrate } from './store/migrate.js';
 import { PgStore } from './store/pg.js';
 import { SEED_SOLUTIONS } from './solutions/seed.js';
+import { MORE_SOLUTIONS } from './solutions/seed-more.js';
+import { seedSpaces } from './spaces/seed.js';
 import type { Store } from './store/types.js';
 
 async function bootstrap(): Promise<void> {
@@ -26,7 +28,8 @@ async function bootstrap(): Promise<void> {
     store = new MemoryStore();
   }
 
-  await store.seedSolutions(SEED_SOLUTIONS);
+  await store.seedSolutions([...SEED_SOLUTIONS, ...MORE_SOLUTIONS]);
+  await seedSpaces(store);
 
   if (config.devAuth) logger.warn('Mode démo actif : « sos login --dev <pseudo> » est accepté. À désactiver en production.');
   if (!config.githubClientId) logger.warn('GITHUB_CLIENT_ID absent : la connexion GitHub depuis « sos login » est indisponible.');
