@@ -88,7 +88,7 @@ function useTheme() {
     } catch {
       /* private mode */
     }
-    return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
