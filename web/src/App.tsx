@@ -88,7 +88,7 @@ function useTheme() {
     } catch {
       /* private mode */
     }
-    return true;
+    return false;
   });
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
