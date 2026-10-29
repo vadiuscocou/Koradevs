@@ -8,7 +8,7 @@ export function Logo({ size = 30, light = false }: { size?: number; light?: bool
         <path d="M18 11v16M13.5 16.5v10M22.5 16.5v10" stroke="#4DF08C" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
       <span style={{ fontWeight: 800, fontSize: size * 0.68, letterSpacing: '-0.03em', color: light ? '#fff' : 'var(--ink)' }}>
-        Kora<span style={{ color: light ? 'var(--neon)' : 'var(--accent)' }}>Devs</span>
+        Kora<span style={{ color: light ? 'var(--neon)' : 'var(--link)' }}>Devs</span>
       </span>
     </span>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BadgeCheck, Eye, EyeOff, LifeBuoy, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Eye, EyeOff, LifeBuoy, ShieldCheck, Users } from 'lucide-react';
 import type { PublicUser } from '@sos/shared';
 import { GITHUB_LOGIN_URL, GOOGLE_LOGIN_URL, authConfig, loginWithPassword, signup } from './api.js';
 import { Logo } from './Logo.js';
@@ -24,8 +24,18 @@ function strength(password: string): number {
 }
 const STRENGTH_LABEL = ['', 'Faible', 'Moyen', 'Bien', 'Solide'];
 
-export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string, user: PublicUser) => void; dark: boolean; toggleTheme: () => void }) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+export function Login({
+  onLogin,
+  dark,
+  toggleTheme,
+  initialMode = 'login',
+}: {
+  onLogin: (token: string, user: PublicUser) => void;
+  dark: boolean;
+  toggleTheme: () => void;
+  initialMode?: 'login' | 'signup';
+}) {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
@@ -95,6 +105,7 @@ export function Login({ onLogin, dark, toggleTheme }: { onLogin: (token: string,
         <div className="theme">
           <ThemeButton dark={dark} toggle={toggleTheme} />
         </div>
+        <a className="back-link" href="#/"><ArrowLeft size={15} /> Retour à l’accueil</a>
 
         <div className="login-box col" style={{ gap: 18 }}>
           <div>

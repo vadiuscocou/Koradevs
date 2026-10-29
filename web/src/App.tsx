@@ -24,6 +24,7 @@ const Projets = lazy(() => import('./Projets.js').then((m) => ({ default: m.Proj
 const Moi = lazy(() => import('./Moi.js').then((m) => ({ default: m.Moi })));
 const DemanderAide = lazy(() => import('./DemanderAide.js').then((m) => ({ default: m.DemanderAide })));
 const Salle = lazy(() => import('./Salle.js').then((m) => ({ default: m.Salle })));
+const Landing = lazy(() => import('./Landing.js').then((m) => ({ default: m.Landing })));
 const PasseportPublic = lazy(() => import('./Passeport.js').then((m) => ({ default: m.PasseportPublic })));
 
 type Tab = 'accueil' | 'fiches' | 'projets' | 'moi';
@@ -33,6 +34,8 @@ interface Route {
   demander: boolean;
   salle: string | null;
   passeport: string | null;
+  /** Logged-out visitors: the sign-in or sign-up page (otherwise they see the public home page). */
+  auth: 'login' | 'signup' | null;
 }
 
 function readRoute(): Route {
@@ -40,7 +43,8 @@ function readRoute(): Route {
   const salle = /^salle\/([0-9a-f-]{36})$/i.exec(path)?.[1] ?? null;
   const passeport = /^passeport\/([\w.-]{1,40})$/i.exec(path)?.[1] ?? null;
   const tab: Tab = path === 'fiches' ? 'fiches' : path === 'projets' ? 'projets' : path === 'moi' ? 'moi' : 'accueil';
-  return { tab, demander: path === 'demander', salle, passeport };
+  const auth = path === 'connexion' ? 'login' : path === 'inscription' ? 'signup' : null;
+  return { tab, demander: path === 'demander', salle, passeport, auth };
 }
 
 /** Where the person's own request stands while they wait for a helper. */
@@ -280,7 +284,12 @@ function Root() {
   }
 
   if (!token || !user) {
-    return <Login dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
+    if (route.auth) return <Login key={route.auth} initialMode={route.auth} dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Landing dark={dark} toggleTheme={toggleTheme} />
+      </Suspense>
+    );
   }
 
   if (route.salle) {
@@ -342,6 +351,7 @@ function Root() {
 
   return (
     <div className="app">
+      <button type="button" className="skip" onClick={() => document.getElementById('contenu')?.focus()}>Aller au contenu</button>
       <aside className="sidebar">
         <button type="button" className="brand" onClick={() => go('#/accueil')} aria-label="Accueil">
           <Logo size={32} />
@@ -402,7 +412,7 @@ function Root() {
           </div>
         </header>
 
-        <main className="page" key={route.demander ? 'demander' : route.tab}>
+        <main id="contenu" tabIndex={-1} className="page" key={route.demander ? 'demander' : route.tab}>
           <Suspense fallback={<PageLoading inline />}>
             {route.demander ? (
               <DemanderAide shared={shared} />
