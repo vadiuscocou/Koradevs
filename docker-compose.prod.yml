@@ -1,0 +1,49 @@
+# Mise en ligne sur un serveur (Systalink) :
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+# Trois conteneurs : l'application, la base PostgreSQL et Caddy (qui donne le https).
+# Les réglages sont lus dans le fichier .env.prod (modèle : .env.prod.example).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://sos:${POSTGRES_PASSWORD}@db:5432/sos}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Inutile si tu utilises la base PostgreSQL gérée de Systalink : mets alors son adresse dans DATABASE_URL
+  # et retire « depends_on » ci-dessus.
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sos
+    volumes:
+      - sos-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sos"]
+      interval: 3s
+      retries: 20
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Ton nom de domaine (https automatique). Sans domaine : laisse « :80 » et le site répond en http sur l'IP.
+      SITE: ${SITE:-:80}
+    command: caddy reverse-proxy --from ${SITE:-:80} --to app:4000
+    depends_on:
+      - app
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  sos-pg:
+  caddy-data:

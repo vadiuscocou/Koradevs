@@ -287,6 +287,9 @@ function Root() {
     );
   }
 
+  // A token is saved (or GitHub just sent us back with one): wait for the account instead of flashing the front page.
+  if (token && !user) return <PageLoading />;
+
   if (!token || !user) {
     if (route.home) return <Landing dark={dark} toggleTheme={toggleTheme} />;
     return <Login key={route.auth ?? 'login'} initialMode={route.auth ?? 'login'} dark={dark} toggleTheme={toggleTheme} onLogin={(t, u) => { setToken(t); setUser(u); }} />;
