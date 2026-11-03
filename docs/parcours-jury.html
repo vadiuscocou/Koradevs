@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KoraDevs — Parcours du jury</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font: 10.5pt/1.5 'Segoe UI', system-ui, sans-serif; color: #0b1712; margin: 0; }
+  h1 { font-size: 30pt; margin: 0; letter-spacing: -.02em; }
+  h1 span { color: #12a150; }
+  h2 { font-size: 15pt; margin: 0 0 8px; color: #0f3d2a; }
+  h3 { font-size: 11pt; margin: 14px 0 4px; }
+  p { margin: 0 0 8px; }
+  .tag { color: #5b6f64; font-size: 12pt; margin: 6px 0 14px; }
+  .box { background: #eaf6ef; border-left: 4px solid #12a150; padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
+  .page { break-after: page; }
+  .page:last-child { break-after: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
+  th, td { border: 1px solid #d3e0d8; padding: 6px 8px; vertical-align: top; text-align: left; }
+  th { background: #0f3d2a; color: #fff; }
+  td.n { width: 22px; text-align: center; font-weight: 700; color: #12a150; }
+  code, pre { font: 9pt Consolas, monospace; background: #0e1914; color: #e8eeea; border-radius: 5px; }
+  code { padding: 1px 5px; }
+  pre { padding: 8px 12px; margin: 6px 0; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; border: 1px solid #d3e0d8; border-radius: 6px; display: block; }
+  .shots figcaption { font-size: 9pt; color: #5b6f64; margin-top: 3px; }
+  .real td:first-child { width: 120px; font-weight: 700; }
+  ul { margin: 4px 0 8px; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <h1>Kora<span>Devs</span></h1>
+  <p class="tag">Quand tu bloques, un développeur te rejoint. · Concours CADEV 2026 (Systalink)</p>
+  <p><b>Essayer en ligne :</b> https://koradevs.onrender.com/ &nbsp;(le premier chargement peut prendre une minute)</p>
+
+  <h2>Le problème</h2>
+  <p>Un développeur bloque sur une erreur. Les forums répondent tard, l'IA tourne parfois en rond, et on se sent seul. Les développeurs prêts à aider ne savent pas qui a besoin d'eux, ni quand. Et une fois le bug réglé en message privé, le savoir disparaît.</p>
+
+  <h2>L'idée</h2>
+  <p>On colle son erreur. Un développeur disponible reçoit l'alerte en direct et rejoint une <b>salle de code partagée</b> : même code, chat, bouton pour lancer le test. Quand le test passe au vert :</p>
+  <ul>
+    <li>la solution devient une <b>fiche</b> que les suivants retrouvent (cause, correction, avant / après) ;</li>
+    <li>l'aidant gagne une <b>preuve</b> dans son <b>Passeport</b>, vérifiable par n'importe qui avec un QR code et une empreinte SHA-256.</li>
+  </ul>
+
+  <div class="box"><b>Pourquoi pas ChatGPT ou Copilot ?</b> KoraDevs ne les remplace pas. Il sert quand le bug dépend de ton contexte et qu'un humain doit voir ton code. Chaque aide devient en plus un savoir vérifié par un test, en français, que les suivants retrouvent.</div>
+
+  <h2>Ce qu'on a construit</h2>
+  <table>
+    <tr><th>Fonction</th><th>Ce que ça fait</th></tr>
+    <tr><td><b>Demande d'aide</b></td><td>3 étapes : l'erreur et le code, un aperçu exact de ce qui part (secrets masqués), l'attente d'un voisin.</td></tr>
+    <tr><td><b>Radar</b></td><td>Les aidants de la même technologie sont alertés tout de suite, les technologies proches après 2 minutes, tous les aidants disponibles après 5 minutes.</td></tr>
+    <tr><td><b>Salle de code</b></td><td>Éditeur partagé en direct, chat, exécution dans le navigateur, bouton « Problème résolu ».</td></tr>
+    <tr><td><b>Fiches</b></td><td>Bibliothèque de solutions : recherche, « utile », commentaires, avant / après rejouable.</td></tr>
+    <tr><td><b>Passeport</b></td><td>Preuves d'aide confirmées par un test, empreinte SHA-256, QR code.</td></tr>
+    <tr><td><b>Espaces</b></td><td>Salons par technologie, suivi de développeurs, fil de leurs aides.</td></tr>
+    <tr><td><b>Projets</b></td><td>Présenter un projet et trouver des coéquipiers.</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h2>Parcours guidé (5 minutes)</h2>
+  <div class="box">Ouvre <b>deux fenêtres</b> : une fenêtre normale (le <b>demandeur</b>, fenêtre A) et une fenêtre de navigation privée (l'<b>aidant</b>, fenêtre B). Tu vois ainsi les deux côtés sans avoir besoin de personne d'autre.</div>
+  <table>
+    <tr><th>#</th><th>Où</th><th>Ce que tu fais</th><th>Ce que tu dois voir</th></tr>
+    <tr><td class="n">1</td><td>B</td><td>Crée un compte (e-mail + mot de passe). Sur <b>Accueil</b>, choisis JavaScript, clique <b>Me rendre disponible</b>.</td><td>Ta porte est ouverte : tu peux être alerté.</td></tr>
+    <tr><td class="n">2</td><td>A</td><td>Crée un autre compte. Clique <b>Demander de l'aide</b>, colle l'erreur et le code ci-dessous, puis ajoute la ligne <code>DB_PASSWORD=ghp_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8</code>.</td><td>À l'étape « Aperçu », la fausse clé est <b>masquée</b> avant l'envoi.</td></tr>
+    <tr><td class="n">3</td><td>B</td><td>Une alerte apparaît : clique <b>Accepter</b>.</td><td>Tu entres dans la salle, le code est là.</td></tr>
+    <tr><td class="n">4</td><td>B</td><td>Corrige la ligne 2, écris dans le chat.</td><td>La fenêtre A voit <b>le code et le chat bouger en direct</b>.</td></tr>
+    <tr><td class="n">5</td><td>A</td><td>Clique <b>Exécuter</b>.</td><td>Le code tourne dans le navigateur, jamais sur le serveur. Un résultat vert lancé par le demandeur <b>confirme le test</b>.</td></tr>
+    <tr><td class="n">6</td><td>A + B</td><td>Chacun clique <b>Problème résolu</b>, puis <b>Valider la fiche</b>.</td><td>La salle se ferme, le code est effacé du serveur.</td></tr>
+    <tr><td class="n">7</td><td>A</td><td>Ouvre <b>Fiches</b>, puis la fiche créée.</td><td>Cause, correction, avant / après rejouable.</td></tr>
+    <tr><td class="n">8</td><td>B</td><td>Ouvre <b>Moi</b>, puis ton <b>Passeport</b>. Clique <b>Vérifier l'empreinte</b>.</td><td>Le navigateur recalcule le SHA-256 : aucune confiance aveugle dans le serveur.</td></tr>
+  </table>
+
+  <h3>Code et erreur d'exemple (fichier <code>users.js</code>, JavaScript)</h3>
+<pre>export const greet = (user) =>
+  `Bonjour ${user.name.toUpperCase()} !`;
+
+console.log(greet({}));</pre>
+  <p>Erreur : <code>TypeError: Cannot read properties of undefined (reading 'toUpperCase')</code><br>
+  Correction à faire (ligne 2) : <code>`Bonjour ${(user.name ?? 'ami').toUpperCase()} !`;</code></p>
+  <p>Pour aller plus vite : l'onglet <b>Fiches</b> contient 23 solutions déjà prêtes, et <b>Espaces</b> des salons par technologie.</p>
+</section>
+
+<section class="page">
+  <h2>Ce que tu verras</h2>
+  <div class="shots">
+    <figure><img src="img/01-accueil-public.png"><figcaption>Accueil : la démonstration en direct</figcaption></figure>
+    <figure><img src="img/02-demander-aide.png"><figcaption>Demander de l'aide : l'erreur et le code</figcaption></figure>
+    <figure><img src="img/03-salle-de-code.png"><figcaption>Salle de code partagée</figcaption></figure>
+    <figure><img src="img/04-fiche-solution.png"><figcaption>Fiche avec avant / après</figcaption></figure>
+    <figure><img src="img/05-passeport-verifiable.png"><figcaption>Passeport vérifiable (QR code, SHA-256)</figcaption></figure>
+    <figure><img src="img/06-salons.png"><figcaption>Salons par technologie</figcaption></figure>
+  </div>
+</section>
+
+<section class="page">
+  <h2>Ce qui est réel, ce qui est préparé</h2>
+  <table class="real">
+    <tr><td>Réel</td><td>Comptes (e-mail ou GitHub), alertes en direct (WebSocket), salle partagée (Yjs), chat, masquage des secrets, exécution du code dans le navigateur, fiches, avant / après, Passeport et empreinte SHA-256, salons, suivi, commentaires.</td></tr>
+    <tr><td>Préparé par l'équipe</td><td>23 fiches de départ, pour que la bibliothèque ne soit pas vide, et un message d'accueil dans chaque salon, signé <code>equipe-koradevs</code>.</td></tr>
+    <tr><td>Jamais inventé</td><td>Aucun faux compte, aucune fausse preuve, aucun aidant automatique. Les aidants et les preuves du Passeport viennent de vraies personnes et de vrais tests.</td></tr>
+    <tr><td>Limites actuelles</td><td>Pas d'IA : le concept initial prévoyait une « piste de l'IA », elle n'est pas dans le produit. Pas de vérification d'e-mail ni de « mot de passe oublié ». Pas de compte administrateur ni de modération. Seul le JavaScript s'exécute dans la salle. L'offre gratuite de Render s'endort après un moment d'inactivité.</td></tr>
+  </table>
+
+  <h2 style="margin-top:18px">Sécurité et confidentialité</h2>
+  <ul>
+    <li>Les secrets (mots de passe, clés, jetons) sont masqués avant l'envoi, puis une seconde fois par le serveur.</li>
+    <li>Seuls le demandeur et l'aidant qui a accepté voient le code. Il est effacé à la fin de la session, 24 heures au maximum.</li>
+    <li>Le serveur n'exécute jamais de code : l'exécution se fait dans un espace isolé du navigateur (5 secondes au plus).</li>
+    <li>Seul un résultat vert lancé par le demandeur confirme le test : l'aidant ne peut pas se confirmer lui-même.</li>
+    <li>Les mots de passe des comptes ne sont jamais gardés, seulement leur empreinte (scrypt).</li>
+  </ul>
+
+  <h2 style="margin-top:18px">Technologies</h2>
+  <p>Serveur <b>NestJS</b> (Node, TypeScript) avec WebSocket · base <b>PostgreSQL</b> · site <b>React + Vite</b> · éditeur <b>CodeMirror 6</b> synchronisé avec <b>Yjs</b>. Toutes les dépendances sont sous licence permissive (aucune GPL, AGPL ou LGPL), vérifié automatiquement à chaque push. Le code source est sur GitHub (dépôt <i>Koradevs</i>, documentation dans le README).</p>
+</section>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { parseBody } from '../validation.js';
 import { SolutionsService } from './solutions.service.js';
@@ -22,10 +22,5 @@ export class SolutionsController {
   @Get('recent')
   recent() {
     return this.solutions.recent();
-  }
-
-  @Post('ai-hint')
-  aiHint() {
-    return { hint: "Il semble que vous ayez oublié d'installer une dépendance ou qu'il y ait une faute de frappe..." };
   }
 }

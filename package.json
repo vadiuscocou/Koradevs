@@ -1,8 +1,8 @@
 {
-  "name": "sos-dev-monorepo",
+  "name": "koradevs-monorepo",
   "private": true,
   "version": "0.1.0",
-  "description": "SOS Dev : quand l'IA ne suffit plus, un développeur te rejoint depuis ton terminal.",
+  "description": "KoraDevs : quand tu bloques, un développeur te rejoint. Entraide entre développeurs africains.",
   "type": "module",
   "workspaces": [
     "shared",

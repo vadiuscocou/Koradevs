@@ -2,36 +2,95 @@
 
 > Quand tu bloques, un développeur te rejoint. Une plateforme d'entraide entre développeurs africains.
 
-Projet CADEV 2026 (Systalink). Le concept complet est dans [`docs/sos-dev-concept-v2.pdf`](docs/sos-dev-concept-v2.pdf).
+Projet du concours CADEV 2026 (Systalink).
 
-## En bref, pour tout le monde
+**Essayer en ligne : <https://koradevs.onrender.com/>** (le premier chargement peut prendre une minute, le temps que le serveur se réveille).
+**Guide du jury en PDF, avec captures : [`docs/koradevs-parcours-jury.pdf`](docs/koradevs-parcours-jury.pdf).**
 
-**Le problème.** Un développeur bloque sur une erreur. Les forums sont lents, l'IA ne suffit pas toujours, et on se sent seul.
+## Le problème, l'idée
 
-**L'idée.** On colle son erreur. Un développeur disponible reçoit l'alerte, rejoint une **salle de code partagée** (on voit et on modifie le même code en direct, avec un chat), et on fait tourner le code pour vérifier que ça marche. La solution devient une **fiche** que les suivants retrouvent.
+Un développeur bloque sur une erreur. Les forums répondent tard, l'IA tourne parfois en rond, et on se sent seul.
 
-**Ce qu'on peut faire sur le site** (menu de gauche) :
+Sur KoraDevs, on colle son erreur. Un développeur disponible reçoit l'alerte en direct et rejoint une **salle de code partagée** : même code, chat, bouton pour lancer le test. Quand le test passe au vert, la solution devient une **fiche** que les suivants retrouvent, et une **preuve** dans le **Passeport** de l'aidant, vérifiable par n'importe qui.
+
+## Parcours guidé pour le jury (5 minutes)
+
+Tu as besoin de **deux fenêtres** : une fenêtre normale (le demandeur) et une fenêtre de navigation privée (l'aidant). Ainsi tu vois les deux côtés, sans avoir besoin de personne d'autre.
+
+| # | Où | Ce que tu fais | Ce que tu dois voir |
+| --- | --- | --- | --- |
+| 1 | Fenêtre **B** (privée) | Crée un compte « aidant » (e-mail + mot de passe), puis sur **Accueil** choisis JavaScript et clique **Me rendre disponible**. | Ta porte est ouverte : tu peux être alerté. |
+| 2 | Fenêtre **A** | Crée un compte « demandeur », clique **Demander de l'aide**, colle l'erreur et le code d'exemple ci-dessous. Ajoute une ligne `DB_PASSWORD=ghp_a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8`. | À l'étape « Aperçu », la fausse clé est **masquée** avant l'envoi. |
+| 3 | Fenêtre **B** | Une alerte apparaît. Clique **Accepter**. | Tu entres dans la salle, le code du demandeur est là. |
+| 4 | Fenêtre **B** | Corrige la ligne 2 dans l'éditeur, écris un message dans le chat. | La fenêtre A voit **le code et le chat bouger en direct**. |
+| 5 | Fenêtre **A** | Clique **Exécuter** : le code tourne dans ton navigateur (jamais sur le serveur). | Le résultat est partagé. Un résultat vert lancé par le demandeur **confirme le test**. |
+| 6 | Les deux | Chacun clique **Problème résolu** puis **Valider la fiche**. | La salle se ferme, le code est effacé du serveur. |
+| 7 | Fenêtre A | Ouvre **Fiches**, puis la fiche créée. | Cause, correction et **avant / après** rejouable. |
+| 8 | Fenêtre B | Ouvre **Moi**, puis ton **Passeport** (ou l'adresse `#/passeport/ton-pseudo`), clique **Vérifier l'empreinte**. | Le navigateur recalcule le SHA-256 : la preuve est vérifiable sans faire confiance au serveur. |
+
+Code d'exemple à coller (fichier `users.js`, technologie JavaScript) :
+
+```js
+export const greet = (user) =>
+  `Bonjour ${user.name.toUpperCase()} !`;
+
+console.log(greet({}));
+```
+
+Erreur à coller : `TypeError: Cannot read properties of undefined (reading 'toUpperCase')`.
+Correction à faire : ``` `Bonjour ${(user.name ?? 'ami').toUpperCase()} !` ```.
+
+Pour aller plus vite : l'onglet **Fiches** contient 23 solutions déjà prêtes, et **Espaces** des salons par technologie.
+
+### Captures
+
+| | |
+| --- | --- |
+| ![Accueil public](docs/img/01-accueil-public.png) **Accueil** : la démonstration en direct | ![Demander de l'aide](docs/img/02-demander-aide.png) **Demander de l'aide** : l'erreur et le code |
+| ![Salle de code](docs/img/03-salle-de-code.png) **Salle de code** partagée | ![Fiche](docs/img/04-fiche-solution.png) **Fiche** avec avant / après |
+| ![Passeport](docs/img/05-passeport-verifiable.png) **Passeport** vérifiable (QR code, SHA-256) | ![Salons](docs/img/06-salons.png) **Salons** par technologie |
+
+## Ce qui est réel, ce qui est préparé
+
+| | |
+| --- | --- |
+| **Réel** | Comptes (e-mail ou GitHub), alertes en direct (WebSocket), salle partagée (Yjs), chat, masquage des secrets, exécution du code dans le navigateur, fiches, avant / après, Passeport et empreinte SHA-256, salons, suivi, commentaires. |
+| **Préparé par l'équipe** | 23 fiches de départ (pour que la bibliothèque ne soit pas vide) et un message d'accueil dans chaque salon, signé `equipe-koradevs`. |
+| **Jamais inventé** | Aucun faux compte, aucune fausse preuve, aucun aidant automatique. Les aidants et les preuves du Passeport viennent de vraies personnes et de vrais tests. |
+| **Limites actuelles** | Pas d'IA : le concept initial prévoyait une « piste de l'IA », elle n'est pas dans le produit. Pas de vérification d'e-mail ni de « mot de passe oublié ». Pas de compte administrateur ni de modération. Seul le JavaScript s'exécute dans la salle. L'offre gratuite de Render s'endort après un moment d'inactivité. |
+
+## Questions probables
+
+**Pourquoi pas ChatGPT ou Copilot ?** KoraDevs ne prétend pas les remplacer. Il sert quand le bug dépend de ton contexte et qu'un humain doit voir ton code. Et chaque aide devient un savoir vérifié par un test, en français, que les suivants retrouvent.
+
+**Mon code est-il en sécurité ?** Les secrets sont masqués avant l'envoi puis une seconde fois par le serveur. Seuls le demandeur et l'aidant voient le code, il est effacé à la fin de la session (24 h maximum), et le serveur n'exécute jamais de code.
+
+**Pourquoi ce n'est pas Monaco ?** L'éditeur est **CodeMirror 6**, synchronisé avec **Yjs** : plus léger, ce qui compte sur une connexion modeste, et sous licence permissive.
+
+**Technologies.** Serveur NestJS (Node, TypeScript) avec WebSocket, base PostgreSQL, site React + Vite, éditeur CodeMirror + Yjs. Toutes les dépendances sont sous licence permissive (aucune GPL, AGPL ou LGPL), vérifié automatiquement à chaque push.
+
+---
+
+# Pour les développeurs
+
+Ce qui suit explique comment lancer, tester et déployer le projet.
+
+## Ce qu'on peut faire sur le site
 
 | Onglet | À quoi ça sert |
 | --- | --- |
 | **Accueil** | Voir qui est disponible, ouvrir sa porte pour aider, suivre ses demandes |
-| **Espaces** | Discuter dans des salons par techno (javascript, python…), suivre des développeurs, lire le fil de leurs aides |
-| **Fiches** | Chercher une solution, la rejouer avant/après, dire qu'elle est « utile », la commenter |
+| **Espaces** | Discuter dans des salons par techno, suivre des développeurs, lire le fil de leurs aides |
+| **Fiches** | Chercher une solution, la rejouer avant / après, dire qu'elle est « utile », la commenter |
 | **Projets** | Présenter un projet et trouver des coéquipiers |
 | **Moi** | Son profil, ses technos, son **Passeport** |
-| **Demander de l'aide** | Le bouton principal : colle ton erreur, un voisin te rejoint |
+| **Demander de l'aide** | Colle ton erreur, un voisin te rejoint |
 
-**Le Passeport.** Chaque aide confirmée par un test vert ajoute une preuve au profil de l'aidant. L'ensemble a une empreinte (SHA-256) que n'importe qui peut recalculer avec un QR code : personne ne peut tricher.
+**Comptes.** Inscription avec e-mail et mot de passe, ou connexion avec GitHub. Tous les comptes ont les mêmes droits.
 
-**Ta sécurité.** Les mots de passe et clés collés par erreur sont masqués avant tout envoi. Le code s'exécute dans ton navigateur (jamais sur le serveur) et il est effacé après 24 h.
+**Où sont les données.** Dans une base PostgreSQL. Sans base, tout reste en mémoire et disparaît à l'arrêt. Au démarrage, le serveur ajoute les fiches de départ et les messages d'accueil (sans doublon si on le relance).
 
-**Comptes.** Inscription avec e-mail et mot de passe, ou connexion avec GitHub. Tous les comptes ont les mêmes droits : il n'y a pas encore de compte administrateur ni de modération.
-
-**Où sont les données.** Dans une base PostgreSQL en ligne (Render). Sur un ordinateur sans base, tout reste en mémoire et disparaît à l'arrêt. Au démarrage, le serveur ajoute 23 fiches de départ et un message d'accueil (signé `equipe-koradevs`, nom réservé) dans chaque salon. Il n'invente aucun faux compte ni fausse preuve.
-
-**Essayer.** Site de test : https://koradevs.onrender.com/ (le premier chargement peut prendre une minute, l'offre gratuite s'endort). En local : voir « Démarrage » ci-dessous.
-
-La suite de ce fichier s'adresse aux développeurs.
+**Déploiement.** Un `Dockerfile` et un `docker-compose.prod.yml` (application, PostgreSQL, HTTPS avec Caddy) permettent la mise en ligne sur un serveur : modèle des réglages dans `.env.prod.example`.
 
 ## Structure
 
@@ -40,7 +99,7 @@ La suite de ce fichier s'adresse aux développeurs.
 | `shared/` | Code commun : masquage des secrets, lecture des traces d'erreur, détection de la techno, format de la demande (Zod) | Étape 1 |
 | `cli/` | La commande `sos` : lance ton programme, capture l'erreur, masque les secrets, affiche l'aperçu, puis fait le pont avec la salle SOS | Étapes 1 et 4 |
 | `server/` | API NestJS + PostgreSQL : connexion GitHub, demandes, fiches, Radar et salle SOS temps réel (WebSocket `/ws`) | Étapes 2 à 4 |
-| `web/` | Interface web (Vite + React) : Accueil, demande d'aide en 3 étapes, Radar, salle SOS (CodeMirror + Yjs), Fiches, Projets, Passeport public. Thème clair/sombre, mobile et ordinateur | Étapes 3 et 4 |
+| `web/` | Interface web (Vite + React) : accueil, demande d'aide en 3 étapes, Radar, salle de code (CodeMirror 6 + Yjs), Fiches, Espaces, Projets, Passeport public. Thème clair/sombre, mobile et ordinateur | Étapes 3 et 4 |
 | `examples/demo/` | Petit programme qui plante, avec de faux secrets, pour la démo | |
 | `scripts/audit-licenses.mjs` | Audit des licences (règlement, article 6) | |
 
