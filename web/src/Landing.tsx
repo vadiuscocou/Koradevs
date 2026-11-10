@@ -189,6 +189,15 @@ export function Landing({ dark, toggleTheme }: { dark: boolean; toggleTheme: () 
           <LiveRoom />
         </section>
 
+        <section className="lp-section lp-video">
+          <Reveal><h2>KoraDevs en 90 secondes</h2></Reveal>
+          <Reveal delay={100}>
+            <video className="lp-video-player" controls preload="none" playsInline poster="/media/presentation-poster.jpg" aria-label="Vidéo de présentation de KoraDevs">
+              <source src="/media/presentation.mp4" type="video/mp4" />
+            </video>
+          </Reveal>
+        </section>
+
         {stats && (
           <Reveal>
             <section className="lp-stats" aria-label="Chiffres du moment">
