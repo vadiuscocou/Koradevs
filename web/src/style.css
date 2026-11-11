@@ -763,13 +763,17 @@ svg {
     bottom: 12px;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 6px;
     border-radius: 22px;
     background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: blur(16px);
     border: 1px solid var(--line);
     box-shadow: var(--shadow-lg);
+  }
+  /* Pendant la saisie, la barre du bas laisse la place au clavier et au champ. */
+  .app:has(input:focus, textarea:focus, select:focus) .tabbar {
+    display: none;
   }
   .tab {
     position: relative;
@@ -3278,6 +3282,7 @@ svg {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
     height: calc(100vh - 190px);
+    height: calc(100dvh - 190px);
   }
   .espaces-list {
     flex-direction: row;
