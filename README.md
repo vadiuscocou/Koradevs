@@ -4,7 +4,7 @@
 
 Projet du concours CADEV 2026 (Systalink).
 
-**Essayer en ligne : <https://koradevs.onrender.com/>** (le premier chargement peut prendre une minute, le temps que le serveur se réveille).
+**Essayer en ligne : <https://koradevs.online/>** (hébergé sur un serveur cloud Systalink).
 **Guide du jury en PDF, avec captures : [`docs/koradevs-parcours-jury.pdf`](docs/koradevs-parcours-jury.pdf).**
 
 ## Le problème, l'idée
@@ -57,7 +57,7 @@ Pour aller plus vite : l'onglet **Fiches** contient 23 solutions déjà prêtes,
 | **Réel** | Comptes (e-mail ou GitHub), alertes en direct (WebSocket), salle partagée (Yjs), chat, masquage des secrets, exécution du code dans le navigateur, fiches, avant / après, Passeport et empreinte SHA-256, salons, suivi, commentaires. |
 | **Préparé par l'équipe** | 23 fiches de départ (pour que la bibliothèque ne soit pas vide) et un message d'accueil dans chaque salon, signé `equipe-koradevs`. |
 | **Jamais inventé** | Aucun faux compte, aucune fausse preuve, aucun aidant automatique. Les aidants et les preuves du Passeport viennent de vraies personnes et de vrais tests. |
-| **Limites actuelles** | Pas d'IA : le concept initial prévoyait une « piste de l'IA », elle n'est pas dans le produit. Pas de vérification d'e-mail ni de « mot de passe oublié ». Pas de compte administrateur ni de modération. Seul le JavaScript s'exécute dans la salle. L'offre gratuite de Render s'endort après un moment d'inactivité. |
+| **Limites actuelles** | Pas d'IA : le concept initial prévoyait une « piste de l'IA », elle n'est pas dans le produit. Pas de vérification d'e-mail ni de « mot de passe oublié ». Pas de compte administrateur ni de modération. Seul le JavaScript s'exécute dans la salle. |
 
 ## Questions probables
 
